@@ -1,0 +1,10 @@
+{
+  "appName": "Stock Manager",
+  "companyName": "DATATECH INVESTMENT AND TECHNOLOGY JOINT STOCK COMPANY",
+  "address": "123 Đường A, Quận B, TP. Hồ Chí Minh",
+  "phone": "028 1234 5678",
+  "email": "contact@datatech.com",
+  "logoUrl": "/uploads/company/company-logo.jpg",
+  "enableLowStockAlert": true,
+  "enableWarrantyAlert": true
+}

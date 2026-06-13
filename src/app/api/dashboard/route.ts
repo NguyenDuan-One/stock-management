@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
       totalProducts,
       products,
       monthlyStockOut,
-      monthlyStockIn,
+      monthlyStockOutItems,
       expiringWarrantiesCount,
       recentStockIn,
       recentStockOut,
@@ -31,9 +31,12 @@ export async function GET(req: NextRequest) {
         where: { status: "CONFIRMED", exportDate: { gte: firstDayOfMonth } },
         _sum: { totalAmount: true },
       }),
-      prisma.stockIn.aggregate({
-        where: { status: "CONFIRMED", importDate: { gte: firstDayOfMonth } },
-        _sum: { totalAmount: true },
+      prisma.stockOutItem.findMany({
+        where: { stockOut: { status: "CONFIRMED", exportDate: { gte: firstDayOfMonth } } },
+        select: {
+          quantity: true,
+          product: { select: { costPrice: true } },
+        },
       }),
       prisma.warrantyRecord.count({
         where: { endDate: { gte: now, lte: thirtyDaysFromNow }, status: "ACTIVE" },
@@ -68,7 +71,10 @@ export async function GET(req: NextRequest) {
     })
 
     const monthlyRevenue = Number(monthlyStockOut._sum.totalAmount || 0)
-    const monthlyCost = Number(monthlyStockIn._sum.totalAmount || 0)
+    const monthlyCost = monthlyStockOutItems.reduce(
+      (sum, item) => sum + item.quantity * Number(item.product.costPrice || 0),
+      0
+    )
     const monthlyProfit = monthlyRevenue - monthlyCost
 
     // Generate mock monthly data for charts (last 6 months)

@@ -123,6 +123,7 @@ export default function StockInDetailPage() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
+      case "CONFIRMED":
       case "COMPLETED":
         return <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
       case "DRAFT":
@@ -136,6 +137,7 @@ export default function StockInDetailPage() {
 
   const getStatusText = (status: string) => {
     switch (status) {
+      case "CONFIRMED":
       case "COMPLETED":
         return "Đã hoàn thành"
       case "DRAFT":
@@ -149,6 +151,7 @@ export default function StockInDetailPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case "CONFIRMED":
       case "COMPLETED":
         return "bg-green-50 border-green-200 text-green-800"
       case "DRAFT":
@@ -161,7 +164,7 @@ export default function StockInDetailPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto print:p-0 print:border-none print:shadow-none">
+    <div className="space-y-6 max-w-5xl mx-auto print:block print:max-w-none print:p-0 print:border-none print:shadow-none">
       <div className="flex items-center gap-2 print:hidden">
         <Button
           variant="outline"
@@ -187,19 +190,7 @@ export default function StockInDetailPage() {
       </div>
 
       {/* Printable Area */}
-      <div className="space-y-6 bg-white p-6 md:p-8 rounded-xl border shadow-sm print:p-0 print:shadow-none print:border-none">
-        {/* Print Header (hidden in screen) */}
-        <div className="hidden print:flex justify-between items-center border-b pb-6 mb-6">
-          <div>
-            <h1 className="text-xl font-bold text-slate-800">CÔNG TY CÔNG NGHỆ DATATECH</h1>
-            <p className="text-xs text-slate-500 mt-1">ĐC: 123 Đường A, Quận B, TP. HCM | ĐT: 028 1234 5678</p>
-          </div>
-          <div className="text-right">
-            <h2 className="text-lg font-bold text-blue-600">PHIẾU NHẬP KHO</h2>
-            <p className="text-sm font-mono text-slate-800 mt-1">{stockIn.code}</p>
-          </div>
-        </div>
-
+      <div className="print-slip space-y-6 bg-white p-6 md:p-8 rounded-xl border shadow-sm print:p-0 print:shadow-none print:border-none">
         {/* Status Alert Banner */}
         <div className={`p-4 border rounded-lg flex items-center gap-3 print:hidden ${getStatusColor(stockIn.status)}`}>
           {getStatusIcon(stockIn.status)}
@@ -207,12 +198,12 @@ export default function StockInDetailPage() {
         </div>
 
         {/* Info Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6 border-b">
-          <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6 border-b print:grid-cols-2 print:gap-4 print:pb-4">
+          <div className="space-y-3 rounded-lg border bg-slate-50/60 p-4 print:rounded-none print:bg-white print:p-3">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-slate-800 text-sm tracking-wider uppercase">Thông tin đơn hàng</h3>
               {stockIn.status !== "CANCELLED" && (
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-blue-600" onClick={openEdit} title="Sửa thông tin">
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-blue-600 print:hidden" onClick={openEdit} title="Sửa thông tin">
                   <Edit className="h-4 w-4" />
                 </Button>
               )}
@@ -237,7 +228,7 @@ export default function StockInDetailPage() {
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 rounded-lg border bg-slate-50/60 p-4 print:rounded-none print:bg-white print:p-3">
             <h3 className="font-bold text-slate-800 text-sm tracking-wider uppercase">Nhà cung cấp</h3>
             <div className="space-y-2 text-sm">
               <div className="font-bold text-slate-800">{stockIn.supplier?.name || "Khác"}</div>
@@ -258,9 +249,9 @@ export default function StockInDetailPage() {
         </div>
 
         {/* Items Table */}
-        <div className="space-y-4">
-          <h3 className="font-bold text-slate-800 text-sm tracking-wider uppercase">Danh sách sản phẩm nhập</h3>
-          <div className="rounded-md border overflow-hidden">
+        <div className="space-y-4 print:space-y-2">
+          <h3 className="font-bold text-slate-800 text-sm tracking-wider uppercase print:text-xs">Danh sách sản phẩm nhập</h3>
+          <div className="rounded-md border overflow-hidden print:rounded-none print:border-0">
             <Table>
               <TableHeader className="bg-slate-50">
                 <TableRow>
@@ -295,10 +286,10 @@ export default function StockInDetailPage() {
         </div>
 
         {/* Cost Summary & Notes */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 print:grid-cols-2 print:gap-4 print:pt-4">
           <div className="space-y-3">
             <h4 className="font-bold text-slate-800 text-xs tracking-wider uppercase">Ghi chú</h4>
-            <div className="bg-slate-50 p-4 rounded-lg border text-sm text-slate-600 min-h-24 whitespace-pre-line">
+            <div className="bg-slate-50 p-4 rounded-lg border text-sm text-slate-600 min-h-24 whitespace-pre-line print:min-h-16 print:rounded-none print:bg-white print:p-3">
               {stockIn.notes || "Không có ghi chú thêm."}
             </div>
           </div>
@@ -307,7 +298,7 @@ export default function StockInDetailPage() {
             <div className="w-full space-y-2 text-sm border-t pt-4 md:border-none md:pt-0">
               <div className="flex justify-between items-center py-1">
                 <span className="text-slate-500 font-medium">Tổng giá trị đơn nhập:</span>
-                <span className="font-bold text-2xl text-blue-700">{formatCurrency(stockIn.totalAmount)}</span>
+                <span className="font-bold text-2xl text-blue-700 print:text-lg print:text-slate-900">{formatCurrency(stockIn.totalAmount)}</span>
               </div>
             </div>
 
@@ -319,18 +310,21 @@ export default function StockInDetailPage() {
         </div>
 
         {/* Print Signatures (hidden in screen) */}
-        <div className="hidden print:grid grid-cols-3 gap-6 text-center text-sm pt-12 mt-12 border-t">
+        <div className="hidden print:grid grid-cols-3 gap-6 text-center text-sm pt-10 mt-10 border-t">
           <div>
             <div className="font-bold">Người lập phiếu</div>
             <div className="text-xs text-slate-400 mt-1">(Ký, họ tên)</div>
+            <div className="mt-16 border-t border-dotted border-slate-400 pt-1 text-xs text-slate-500">&nbsp;</div>
           </div>
           <div>
             <div className="font-bold">Người giao hàng</div>
             <div className="text-xs text-slate-400 mt-1">(Ký, họ tên)</div>
+            <div className="mt-16 border-t border-dotted border-slate-400 pt-1 text-xs text-slate-500">&nbsp;</div>
           </div>
           <div>
             <div className="font-bold">Thủ kho</div>
             <div className="text-xs text-slate-400 mt-1">(Ký, họ tên)</div>
+            <div className="mt-16 border-t border-dotted border-slate-400 pt-1 text-xs text-slate-500">&nbsp;</div>
           </div>
         </div>
       </div>

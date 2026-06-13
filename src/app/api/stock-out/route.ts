@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const userId = session.user.id as string
 
     const body = await req.json()
     const { customerId, exportDate, poNumber, contractNumber, notes, items, status } = body
@@ -100,8 +101,8 @@ export async function POST(req: NextRequest) {
           contractNumber,
           totalAmount,
           notes,
-          status: status || "CONFIRMED",
-          createdById: session.user.id as string,
+          status: status === "COMPLETED" ? "CONFIRMED" : (status || "CONFIRMED"),
+          createdById: userId,
           items: {
             create: items.map((item: any) => {
               const warrantyStartDate = item.warrantyStartDate ? new Date(item.warrantyStartDate) : new Date(exportDate)
@@ -172,7 +173,7 @@ export async function POST(req: NextRequest) {
       // Create audit log
       await tx.auditLog.create({
         data: {
-          userId: session.user.id as string,
+          userId,
           action: "CREATE",
           module: "STOCK_OUT",
           targetId: stockOut.id,

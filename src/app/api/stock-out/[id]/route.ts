@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -42,7 +42,7 @@ export async function GET(
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -78,11 +78,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const userId = session.user.id as string
 
     const resolvedParams = await Promise.resolve(params)
     const id = resolvedParams.id
@@ -105,8 +106,12 @@ export async function DELETE(
       })
 
       // Revert stock if it was confirmed/completed
-      if (stockOut.status === "CONFIRMED" || stockOut.status === "COMPLETED") {
+      if (stockOut.status === "CONFIRMED") {
         for (const item of stockOut.items) {
+          const product = await tx.product.findUnique({ where: { id: item.productId } })
+          if (!product) throw new Error(`Product ${item.productId} not found`)
+          const nextQuantity = product.quantity + item.quantity
+
           await tx.product.update({
             where: { id: item.productId },
             data: { quantity: { increment: item.quantity } }
@@ -117,9 +122,11 @@ export async function DELETE(
               productId: item.productId,
               type: "STOCK_IN", 
               quantity: item.quantity,
+              balanceBefore: product.quantity,
+              balanceAfter: nextQuantity,
               referenceId: cancelled.id,
+              referenceCode: cancelled.code,
               notes: `Hoàn kho do hủy phiếu xuất ${cancelled.code}`,
-              createdById: session.user.id as string
             }
           })
         }
@@ -127,7 +134,7 @@ export async function DELETE(
 
       await tx.auditLog.create({
         data: {
-          userId: session.user.id as string,
+          userId,
           action: "CANCEL",
           module: "STOCK_OUT",
           targetId: cancelled.id,

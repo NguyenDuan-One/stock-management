@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -66,10 +66,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const userId = session.user.id as string
 
     const resolvedParams = await Promise.resolve(params)
     const id = resolvedParams.id
@@ -93,11 +94,27 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       })
 
       // Revert stock if it was confirmed/completed
-      if (stockIn.status === "CONFIRMED" || stockIn.status === "COMPLETED") {
+      if (stockIn.status === "CONFIRMED") {
         for (const item of stockIn.items) {
+          const product = await tx.product.findUnique({ where: { id: item.productId } })
+          if (!product) throw new Error(`Product ${item.productId} not found`)
+          if (product.quantity < item.quantity) {
+            throw new Error(`Không thể hủy phiếu nhập vì tồn kho hiện tại (${product.quantity}) nhỏ hơn số lượng cần hoàn (${item.quantity})`)
+          }
+
+          const nextQuantity = product.quantity - item.quantity
+          const currentCostPrice = Number(product.costPrice || 0)
+          const itemTotalPrice = Number(item.totalPrice)
+          const nextCostPrice = nextQuantity > 0
+            ? Math.max(((product.quantity * currentCostPrice) - itemTotalPrice) / nextQuantity, 0)
+            : null
+
           await tx.product.update({
             where: { id: item.productId },
-            data: { quantity: { decrement: item.quantity } }
+            data: {
+              quantity: { decrement: item.quantity },
+              costPrice: nextCostPrice,
+            }
           })
           
           await tx.inventoryTransaction.create({
@@ -105,9 +122,11 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
               productId: item.productId,
               type: "STOCK_OUT", 
               quantity: item.quantity,
+              balanceBefore: product.quantity,
+              balanceAfter: nextQuantity,
               referenceId: cancelled.id,
+              referenceCode: cancelled.code,
               notes: `Hoàn kho do hủy phiếu nhập ${cancelled.code}`,
-              createdById: session.user.id as string
             }
           })
         }
@@ -115,7 +134,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
       await tx.auditLog.create({
         data: {
-          userId: session.user.id as string,
+          userId,
           action: "CANCEL",
           module: "STOCK_IN",
           targetId: cancelled.id,

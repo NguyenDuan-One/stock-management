@@ -12,19 +12,23 @@ export async function GET(req: NextRequest) {
       include: {
         category: { select: { name: true } },
         stockInItems: {
+          where: { stockIn: { status: "CONFIRMED" } },
           select: { quantity: true, unitPrice: true }
         },
         stockOutItems: {
+          where: { stockOut: { status: "CONFIRMED" } },
           select: { quantity: true, unitPrice: true }
         }
       }
     })
 
     const data = products.map((p) => {
-      const totalCost = p.stockInItems.reduce((sum, item) => sum + item.quantity * Number(item.unitPrice), 0)
+      const totalImportedCost = p.stockInItems.reduce((sum, item) => sum + item.quantity * Number(item.unitPrice), 0)
       const totalRevenue = p.stockOutItems.reduce((sum, item) => sum + item.quantity * Number(item.unitPrice), 0)
       const totalQtySold = p.stockOutItems.reduce((sum, item) => sum + item.quantity, 0)
       const totalQtyImported = p.stockInItems.reduce((sum, item) => sum + item.quantity, 0)
+      const averageCostPrice = totalQtyImported > 0 ? totalImportedCost / totalQtyImported : Number(p.costPrice || 0)
+      const totalCost = totalQtySold * averageCostPrice
       const profit = totalRevenue - totalCost
       const margin = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0
 

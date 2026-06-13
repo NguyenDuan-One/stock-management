@@ -41,7 +41,7 @@ export function Header({ user, onMenuClick }: HeaderProps) {
   })
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-4 border-b bg-white px-4 shadow-sm md:px-6">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-4 border-b bg-white px-4 shadow-sm md:px-6 print:hidden">
       <Button
         variant="ghost"
         size="icon"

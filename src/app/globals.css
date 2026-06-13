@@ -255,6 +255,65 @@
 
 /* Print styles */
 @media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
   .no-print { display: none !important; }
   .print-only { display: block !important; }
+
+  .print-slip {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    color: #0f172a !important;
+    font-size: 12px !important;
+    line-height: 1.35 !important;
+  }
+
+  .print-slip h1,
+  .print-slip h2,
+  .print-slip h3,
+  .print-slip h4 {
+    color: #0f172a !important;
+  }
+
+  .print-slip table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 11px !important;
+  }
+
+  .print-slip thead {
+    display: table-header-group !important;
+  }
+
+  .print-slip tr {
+    page-break-inside: avoid !important;
+  }
+
+  .print-slip th,
+  .print-slip td {
+    border: 1px solid #cbd5e1 !important;
+    padding: 6px 8px !important;
+    color: #0f172a !important;
+  }
+
+  .print-slip th {
+    background: #f1f5f9 !important;
+    font-weight: 700 !important;
+  }
 }

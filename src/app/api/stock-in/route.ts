@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const userId = session.user.id as string
 
     const body = await req.json()
     const { supplierId, importDate, poNumber, contractNumber, notes, items, status } = body
@@ -91,8 +92,8 @@ export async function POST(req: NextRequest) {
           contractNumber,
           totalAmount,
           notes,
-          status: status || "CONFIRMED",
-          createdById: session.user.id as string,
+          status: status === "COMPLETED" ? "CONFIRMED" : (status || "CONFIRMED"),
+          createdById: userId,
           items: {
             create: items.map((item: any) => ({
               productId: item.productId,
@@ -114,10 +115,22 @@ export async function POST(req: NextRequest) {
           const product = await tx.product.findUnique({ where: { id: item.productId } })
           if (!product) throw new Error(`Product ${item.productId} not found`)
 
-          // Increment quantity
+          const itemQuantity = Number(item.quantity)
+          const itemUnitPrice = Number(item.unitPrice)
+          const currentQuantity = product.quantity
+          const currentCostPrice = Number(product.costPrice || 0)
+          const nextQuantity = currentQuantity + itemQuantity
+          const nextCostPrice = nextQuantity > 0
+            ? ((currentQuantity * currentCostPrice) + (itemQuantity * itemUnitPrice)) / nextQuantity
+            : itemUnitPrice
+
+          // Increment quantity and update moving average cost price
           await tx.product.update({
             where: { id: item.productId },
-            data: { quantity: { increment: Number(item.quantity) } }
+            data: {
+              quantity: { increment: itemQuantity },
+              costPrice: nextCostPrice,
+            }
           })
 
           // Create inventory transaction
@@ -125,9 +138,9 @@ export async function POST(req: NextRequest) {
             data: {
               productId: item.productId,
               type: "STOCK_IN",
-              quantity: Number(item.quantity),
-              balanceBefore: product.quantity,
-              balanceAfter: product.quantity + Number(item.quantity),
+              quantity: itemQuantity,
+              balanceBefore: currentQuantity,
+              balanceAfter: nextQuantity,
               referenceId: stockIn.id,
               referenceCode: stockIn.code,
               notes: "Nhập kho",
@@ -139,7 +152,7 @@ export async function POST(req: NextRequest) {
       // 4. Create audit log
       await tx.auditLog.create({
         data: {
-          userId: session.user.id as string,
+          userId,
           action: "CREATE",
           module: "STOCK_IN",
           targetId: stockIn.id,

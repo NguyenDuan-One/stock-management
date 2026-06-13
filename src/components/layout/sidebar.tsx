@@ -85,7 +85,7 @@ export function Sidebar({ user, isOpen, setIsOpen }: SidebarProps) {
       {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/80 md:hidden"
+          className="fixed inset-0 z-40 bg-black/80 md:hidden print:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -94,6 +94,7 @@ export function Sidebar({ user, isOpen, setIsOpen }: SidebarProps) {
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-[#0f172a] text-slate-400 transition-transform duration-300 md:static md:translate-x-0",
+          "print:hidden",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
