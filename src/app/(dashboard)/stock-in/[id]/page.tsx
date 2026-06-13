@@ -1,0 +1,381 @@
+"use client"
+
+import * as React from "react"
+import { useRouter, useParams } from "next/navigation"
+import { ArrowLeft, Loader2, Printer, Calendar, User, FileText, CheckCircle2, AlertTriangle, AlertCircle, Trash, Edit } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { PageHeader } from "@/components/ui/page-header"
+import { toast } from "sonner"
+import { formatCurrency, formatDate } from "@/lib/utils"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+
+export default function StockInDetailPage() {
+  const router = useRouter()
+  const params = useParams()
+  const id = params.id as string
+  const [stockIn, setStockIn] = React.useState<any>(null)
+  const [isLoading, setIsLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    fetchStockInDetails()
+  }, [id])
+
+  const fetchStockInDetails = async () => {
+    try {
+      setIsLoading(true)
+      const res = await fetch(`/api/stock-in/${id}`)
+      if (!res.ok) throw new Error("Không thể tải thông tin phiếu nhập kho")
+      const json = await res.json()
+      setStockIn(json)
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error.message || "Lỗi khi tải thông tin phiếu nhập")
+      router.push("/stock-in")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const [isCancelling, setIsCancelling] = React.useState(false)
+  
+  const [isEditing, setIsEditing] = React.useState(false)
+  const [editData, setEditData] = React.useState({ poNumber: "", contractNumber: "", notes: "" })
+  const [isSaving, setIsSaving] = React.useState(false)
+
+  const handlePrint = () => {
+    window.print()
+  }
+
+  const openEdit = () => {
+    if (stockIn?.status === "CANCELLED") {
+      toast.error("Không thể sửa phiếu đã hủy")
+      return
+    }
+    setEditData({
+      poNumber: stockIn?.poNumber || "",
+      contractNumber: stockIn?.contractNumber || "",
+      notes: stockIn?.notes || ""
+    })
+    setIsEditing(true)
+  }
+
+  const handleSaveEdit = async () => {
+    try {
+      setIsSaving(true)
+      const res = await fetch(`/api/stock-in/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editData)
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || "Không thể lưu")
+      
+      toast.success("Đã cập nhật thông tin thành công")
+      setIsEditing(false)
+      fetchStockInDetails()
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error.message)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleCancel = async () => {
+    if (!window.confirm("Bạn có chắc chắn muốn hủy phiếu này? Hệ thống sẽ tự động hoàn lại số lượng tồn kho.")) return
+    
+    try {
+      setIsCancelling(true)
+      const res = await fetch(`/api/stock-in/${id}`, { method: "DELETE" })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || "Không thể hủy phiếu")
+      
+      toast.success("Hủy phiếu thành công")
+      fetchStockInDetails()
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error.message)
+    } finally {
+      setIsCancelling(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    )
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "COMPLETED":
+        return <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+      case "DRAFT":
+        return <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+      case "CANCELLED":
+        return <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
+      default:
+        return null
+    }
+  }
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "COMPLETED":
+        return "Đã hoàn thành"
+      case "DRAFT":
+        return "Bản nháp"
+      case "CANCELLED":
+        return "Đã hủy"
+      default:
+        return status
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "COMPLETED":
+        return "bg-green-50 border-green-200 text-green-800"
+      case "DRAFT":
+        return "bg-amber-50 border-amber-200 text-amber-800"
+      case "CANCELLED":
+        return "bg-red-50 border-red-200 text-red-800"
+      default:
+        return "bg-slate-50 border-slate-200"
+    }
+  }
+
+  return (
+    <div className="space-y-6 max-w-4xl mx-auto print:p-0 print:border-none print:shadow-none">
+      <div className="flex items-center gap-2 print:hidden">
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() => router.push("/stock-in")}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <PageHeader title="Chi tiết phiếu nhập kho" subtitle={`Mã phiếu: ${stockIn.code}`} />
+        <div className="ml-auto flex items-center gap-2">
+          {stockIn.status !== "CANCELLED" && (
+            <Button variant="destructive" onClick={handleCancel} disabled={isCancelling}>
+              {isCancelling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash className="mr-2 h-4 w-4" />}
+              Hủy phiếu
+            </Button>
+          )}
+          <Button variant="outline" onClick={handlePrint}>
+            <Printer className="mr-2 h-4 w-4 text-blue-600" />
+            In phiếu
+          </Button>
+        </div>
+      </div>
+
+      {/* Printable Area */}
+      <div className="space-y-6 bg-white p-6 md:p-8 rounded-xl border shadow-sm print:p-0 print:shadow-none print:border-none">
+        {/* Print Header (hidden in screen) */}
+        <div className="hidden print:flex justify-between items-center border-b pb-6 mb-6">
+          <div>
+            <h1 className="text-xl font-bold text-slate-800">CÔNG TY CÔNG NGHỆ DATATECH</h1>
+            <p className="text-xs text-slate-500 mt-1">ĐC: 123 Đường A, Quận B, TP. HCM | ĐT: 028 1234 5678</p>
+          </div>
+          <div className="text-right">
+            <h2 className="text-lg font-bold text-blue-600">PHIẾU NHẬP KHO</h2>
+            <p className="text-sm font-mono text-slate-800 mt-1">{stockIn.code}</p>
+          </div>
+        </div>
+
+        {/* Status Alert Banner */}
+        <div className={`p-4 border rounded-lg flex items-center gap-3 print:hidden ${getStatusColor(stockIn.status)}`}>
+          {getStatusIcon(stockIn.status)}
+          <span className="font-semibold text-sm">Trạng thái phiếu: {getStatusText(stockIn.status)}</span>
+        </div>
+
+        {/* Info Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6 border-b">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-slate-800 text-sm tracking-wider uppercase">Thông tin đơn hàng</h3>
+              {stockIn.status !== "CANCELLED" && (
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-blue-600" onClick={openEdit} title="Sửa thông tin">
+                  <Edit className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Mã phiếu nhập:</span>
+                <span className="font-mono font-bold text-slate-800">{stockIn.code}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Ngày nhập kho:</span>
+                <span className="font-semibold text-slate-700">{formatDate(stockIn.importDate)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Số đơn hàng (PO):</span>
+                <span className="font-medium text-slate-800">{stockIn.poNumber || "-"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Số hợp đồng:</span>
+                <span className="font-medium text-slate-800">{stockIn.contractNumber || "-"}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="font-bold text-slate-800 text-sm tracking-wider uppercase">Nhà cung cấp</h3>
+            <div className="space-y-2 text-sm">
+              <div className="font-bold text-slate-800">{stockIn.supplier?.name || "Khác"}</div>
+              {stockIn.supplier?.code && (
+                <div className="text-xs text-slate-500">Mã nhà cung cấp: {stockIn.supplier.code}</div>
+              )}
+              {stockIn.supplier?.phone && (
+                <div className="text-xs text-slate-600">SĐT: {stockIn.supplier.phone}</div>
+              )}
+              {stockIn.supplier?.email && (
+                <div className="text-xs text-slate-600">Email: {stockIn.supplier.email}</div>
+              )}
+              {stockIn.supplier?.address && (
+                <div className="text-xs text-slate-600">Địa chỉ: {stockIn.supplier.address}</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Items Table */}
+        <div className="space-y-4">
+          <h3 className="font-bold text-slate-800 text-sm tracking-wider uppercase">Danh sách sản phẩm nhập</h3>
+          <div className="rounded-md border overflow-hidden">
+            <Table>
+              <TableHeader className="bg-slate-50">
+                <TableRow>
+                  <TableHead className="w-[80px]">STT</TableHead>
+                  <TableHead>Tên sản phẩm</TableHead>
+                  <TableHead>Mã SKU</TableHead>
+                  <TableHead>Số Serial (S/N)</TableHead>
+                  <TableHead className="text-right">Số lượng</TableHead>
+                  <TableHead className="text-right">Đơn giá</TableHead>
+                  <TableHead className="text-right">Thành tiền</TableHead>
+                  <TableHead className="text-center w-[100px]">BH (Tháng)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {stockIn.items?.map((item: any, idx: number) => (
+                  <TableRow key={item.id} className="hover:bg-slate-50/50">
+                    <TableCell className="font-medium">{idx + 1}</TableCell>
+                    <TableCell className="font-semibold text-slate-800">{item.product?.name}</TableCell>
+                    <TableCell className="font-mono text-xs">{item.product?.sku}</TableCell>
+                    <TableCell className="font-mono font-medium text-slate-600">{item.serialNumber || "-"}</TableCell>
+                    <TableCell className="text-right font-medium">{item.quantity} {item.product?.unit || "cái"}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
+                    <TableCell className="text-right font-bold text-slate-800">
+                      {formatCurrency(item.quantity * item.unitPrice)}
+                    </TableCell>
+                    <TableCell className="text-center">{item.warrantyMonths || 0} tháng</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+
+        {/* Cost Summary & Notes */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
+          <div className="space-y-3">
+            <h4 className="font-bold text-slate-800 text-xs tracking-wider uppercase">Ghi chú</h4>
+            <div className="bg-slate-50 p-4 rounded-lg border text-sm text-slate-600 min-h-24 whitespace-pre-line">
+              {stockIn.notes || "Không có ghi chú thêm."}
+            </div>
+          </div>
+
+          <div className="space-y-4 flex flex-col justify-between items-end">
+            <div className="w-full space-y-2 text-sm border-t pt-4 md:border-none md:pt-0">
+              <div className="flex justify-between items-center py-1">
+                <span className="text-slate-500 font-medium">Tổng giá trị đơn nhập:</span>
+                <span className="font-bold text-2xl text-blue-700">{formatCurrency(stockIn.totalAmount)}</span>
+              </div>
+            </div>
+
+            <div className="text-right text-xs text-slate-400 space-y-1 print:mt-12">
+              <div>Được ghi nhận bởi: <span className="font-semibold text-slate-600">{stockIn.createdBy?.fullName || stockIn.createdBy?.username}</span></div>
+              <div>Vào lúc: {formatDate(stockIn.createdAt)}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Print Signatures (hidden in screen) */}
+        <div className="hidden print:grid grid-cols-3 gap-6 text-center text-sm pt-12 mt-12 border-t">
+          <div>
+            <div className="font-bold">Người lập phiếu</div>
+            <div className="text-xs text-slate-400 mt-1">(Ký, họ tên)</div>
+          </div>
+          <div>
+            <div className="font-bold">Người giao hàng</div>
+            <div className="text-xs text-slate-400 mt-1">(Ký, họ tên)</div>
+          </div>
+          <div>
+            <div className="font-bold">Thủ kho</div>
+            <div className="text-xs text-slate-400 mt-1">(Ký, họ tên)</div>
+          </div>
+        </div>
+      </div>
+
+      <Dialog open={isEditing} onOpenChange={setIsEditing}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Sửa thông tin đơn hàng</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Số PO (Đơn đặt hàng)</Label>
+              <Input 
+                value={editData.poNumber} 
+                onChange={(e) => setEditData({...editData, poNumber: e.target.value})}
+                placeholder="Nhập số PO..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Số hợp đồng / Hóa đơn</Label>
+              <Input 
+                value={editData.contractNumber} 
+                onChange={(e) => setEditData({...editData, contractNumber: e.target.value})}
+                placeholder="Nhập số hợp đồng hoặc hóa đơn..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Ghi chú</Label>
+              <Textarea 
+                value={editData.notes} 
+                onChange={(e) => setEditData({...editData, notes: e.target.value})}
+                placeholder="Ghi chú thêm..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditing(false)}>Hủy</Button>
+            <Button onClick={handleSaveEdit} disabled={isSaving}>
+              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Lưu thay đổi
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}

@@ -1,0 +1,415 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// AUTH & PERMISSIONS
+// ============================================================
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  fullName  String
+  phone     String?
+  avatar    String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userRoles        UserRole[]
+  stockInRecords   StockIn[]
+  stockOutRecords  StockOut[]
+  auditLogs        AuditLog[]
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  displayName String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  displayName String
+  module      String
+  action      String
+  createdAt   DateTime @default(now())
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  id           String   @id @default(cuid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime @default(now())
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ============================================================
+// PRODUCT CATEGORIES
+// ============================================================
+
+model ProductCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  code        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+
+  @@map("product_categories")
+}
+
+// ============================================================
+// PRODUCTS
+// ============================================================
+
+enum ProductStatus {
+  IN_STOCK
+  OUT_OF_STOCK
+  SOLD
+  WARRANTY
+  BROKEN
+  DISCONTINUED
+}
+
+model Product {
+  id               String        @id @default(cuid())
+  name             String
+  sku              String        @unique
+  serialNumber     String?       @unique
+  model            String?
+  brand            String?
+  categoryId       String?
+  unit             String        @default("cái")
+  description      String?       @db.Text
+  status           ProductStatus @default(IN_STOCK)
+  warrantyMonths   Int           @default(12)
+  quantity         Int           @default(0)
+  minQuantity      Int           @default(0)
+  costPrice        Decimal?      @db.Decimal(15, 2)
+  sellingPrice     Decimal?      @db.Decimal(15, 2)
+  notes            String?       @db.Text
+  imageUrl         String?
+  barcode          String?
+  isActive         Boolean       @default(true)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  category             ProductCategory?       @relation(fields: [categoryId], references: [id])
+  stockInItems         StockInItem[]
+  stockOutItems        StockOutItem[]
+  inventoryTransactions InventoryTransaction[]
+  warrantyRecords      WarrantyRecord[]
+
+  @@index([sku])
+  @@index([serialNumber])
+  @@index([barcode])
+  @@map("products")
+}
+
+// ============================================================
+// SUPPLIERS
+// ============================================================
+
+model Supplier {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  contactName String?
+  phone       String?
+  email       String?
+  address     String?
+  taxCode     String?
+  notes       String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  stockIns StockIn[]
+
+  @@map("suppliers")
+}
+
+// ============================================================
+// CUSTOMERS
+// ============================================================
+
+model Customer {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  contactName String?
+  phone       String?
+  email       String?
+  address     String?
+  taxCode     String?
+  notes       String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  stockOuts       StockOut[]
+  warrantyRecords WarrantyRecord[]
+
+  @@map("customers")
+}
+
+// ============================================================
+// STOCK IN (NHẬP KHO)
+// ============================================================
+
+enum StockInStatus {
+  DRAFT
+  CONFIRMED
+  CANCELLED
+}
+
+model StockIn {
+  id            String        @id @default(cuid())
+  code          String        @unique
+  supplierId    String
+  importDate    DateTime
+  poNumber      String?
+  contractNumber String?
+  totalAmount   Decimal       @default(0) @db.Decimal(15, 2)
+  status        StockInStatus @default(CONFIRMED)
+  createdById   String
+  notes         String?       @db.Text
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  supplier    Supplier      @relation(fields: [supplierId], references: [id])
+  createdBy   User          @relation(fields: [createdById], references: [id])
+  items       StockInItem[]
+  attachments Attachment[]
+
+  @@index([code])
+  @@index([poNumber])
+  @@index([contractNumber])
+  @@map("stock_in")
+}
+
+model StockInItem {
+  id              String   @id @default(cuid())
+  stockInId       String
+  productId       String
+  serialNumber    String?
+  quantity        Int
+  unitPrice       Decimal  @db.Decimal(15, 2)
+  totalPrice      Decimal  @db.Decimal(15, 2)
+  warrantyMonths  Int      @default(12)
+  warrantyExpiry  DateTime?
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  stockIn StockIn @relation(fields: [stockInId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("stock_in_items")
+}
+
+// ============================================================
+// STOCK OUT (XUẤT KHO / BÁN HÀNG)
+// ============================================================
+
+enum StockOutStatus {
+  DRAFT
+  CONFIRMED
+  CANCELLED
+}
+
+model StockOut {
+  id             String         @id @default(cuid())
+  code           String         @unique
+  customerId     String
+  exportDate     DateTime
+  poNumber       String?
+  contractNumber String?
+  totalAmount    Decimal        @default(0) @db.Decimal(15, 2)
+  status         StockOutStatus @default(CONFIRMED)
+  createdById    String
+  notes          String?        @db.Text
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  customer    Customer       @relation(fields: [customerId], references: [id])
+  createdBy   User           @relation(fields: [createdById], references: [id])
+  items       StockOutItem[]
+  attachments Attachment[]
+
+  @@index([code])
+  @@index([poNumber])
+  @@index([contractNumber])
+  @@map("stock_out")
+}
+
+model StockOutItem {
+  id                String    @id @default(cuid())
+  stockOutId        String
+  productId         String
+  serialNumber      String?
+  quantity          Int
+  unitPrice         Decimal   @db.Decimal(15, 2)
+  totalPrice        Decimal   @db.Decimal(15, 2)
+  warrantyMonths    Int       @default(12)
+  warrantyStartDate DateTime?
+  warrantyEndDate   DateTime?
+  notes             String?
+  createdAt         DateTime  @default(now())
+
+  stockOut        StockOut         @relation(fields: [stockOutId], references: [id], onDelete: Cascade)
+  product         Product          @relation(fields: [productId], references: [id])
+  warrantyRecords WarrantyRecord[]
+
+  @@map("stock_out_items")
+}
+
+// ============================================================
+// INVENTORY TRANSACTIONS
+// ============================================================
+
+enum TransactionType {
+  STOCK_IN
+  STOCK_OUT
+  ADJUSTMENT
+  RETURN
+}
+
+model InventoryTransaction {
+  id            String          @id @default(cuid())
+  productId     String
+  type          TransactionType
+  quantity      Int
+  balanceBefore Int
+  balanceAfter  Int
+  referenceId   String?
+  referenceCode String?
+  notes         String?
+  createdAt     DateTime        @default(now())
+
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([productId])
+  @@index([type])
+  @@map("inventory_transactions")
+}
+
+// ============================================================
+// WARRANTY RECORDS
+// ============================================================
+
+enum WarrantyStatus {
+  ACTIVE
+  EXPIRED
+  VOIDED
+}
+
+model WarrantyRecord {
+  id               String        @id @default(cuid())
+  productId        String
+  customerId       String
+  stockOutItemId   String?
+  serialNumber     String?
+  warrantyMonths   Int
+  startDate        DateTime
+  endDate          DateTime
+  status           WarrantyStatus @default(ACTIVE)
+  notes            String?       @db.Text
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  product      Product       @relation(fields: [productId], references: [id])
+  customer     Customer      @relation(fields: [customerId], references: [id])
+  stockOutItem StockOutItem? @relation(fields: [stockOutItemId], references: [id])
+
+  @@index([serialNumber])
+  @@index([endDate])
+  @@map("warranty_records")
+}
+
+// ============================================================
+// ATTACHMENTS
+// ============================================================
+
+model Attachment {
+  id          String   @id @default(cuid())
+  fileName    String
+  fileSize    Int
+  fileType    String
+  fileUrl     String
+  stockInId   String?
+  stockOutId  String?
+  createdAt   DateTime @default(now())
+
+  stockIn  StockIn?  @relation(fields: [stockInId], references: [id], onDelete: Cascade)
+  stockOut StockOut? @relation(fields: [stockOutId], references: [id], onDelete: Cascade)
+
+  @@map("attachments")
+}
+
+// ============================================================
+// AUDIT LOGS
+// ============================================================
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  module     String
+  targetId   String?
+  targetName String?
+  oldValues  Json?
+  newValues  Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([module])
+  @@index([action])
+  @@map("audit_logs")
+}
