@@ -23,12 +23,16 @@ import {
 } from "@/components/ui/dialog"
 import { PageHeader } from "@/components/ui/page-header"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { TablePagination } from "@/components/ui/table-pagination"
 import { toast } from "sonner"
 
 export default function SuppliersPage() {
   const [suppliers, setSuppliers] = React.useState<any[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [search, setSearch] = React.useState("")
+  const [page, setPage] = React.useState(1)
+  const [total, setTotal] = React.useState(0)
+  const limit = 10
   
   // Dialog state
   const [isOpen, setIsOpen] = React.useState(false)
@@ -51,14 +55,20 @@ export default function SuppliersPage() {
 
   React.useEffect(() => {
     fetchSuppliers()
-  }, [search])
+  }, [search, page])
 
   const fetchSuppliers = async () => {
     try {
       setIsLoading(true)
-      const res = await fetch(`/api/suppliers?search=${encodeURIComponent(search)}`)
+      const queryParams = new URLSearchParams({
+        search,
+        page: String(page),
+        limit: String(limit),
+      })
+      const res = await fetch(`/api/suppliers?${queryParams}`)
       const json = await res.json()
       setSuppliers(Array.isArray(json) ? json : json.data || [])
+      setTotal(json.pagination?.total || 0)
     } catch (error) {
       console.error(error)
       toast.error("Không thể tải danh sách nhà cung cấp")
@@ -177,7 +187,10 @@ export default function SuppliersPage() {
           <Input
             placeholder="Tìm theo tên, mã, số điện thoại..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value)
+              setPage(1)
+            }}
             className="pl-9 bg-white"
           />
         </div>
@@ -213,7 +226,7 @@ export default function SuppliersPage() {
             ) : (
               suppliers.map((sup, idx) => (
                 <TableRow key={sup.id} className="hover:bg-slate-50/50">
-                  <TableCell className="font-medium">{idx + 1}</TableCell>
+                  <TableCell className="font-medium">{(page - 1) * limit + idx + 1}</TableCell>
                   <TableCell className="font-mono font-medium text-slate-900">{sup.code}</TableCell>
                   <TableCell>
                     <div className="font-semibold text-slate-800">{sup.name}</div>
@@ -263,6 +276,13 @@ export default function SuppliersPage() {
             )}
           </TableBody>
         </Table>
+        <TablePagination
+          page={page}
+          limit={limit}
+          total={total}
+          itemLabel="nhà cung cấp"
+          onPageChange={setPage}
+        />
       </div>
 
       {/* Add/Edit Dialog */}

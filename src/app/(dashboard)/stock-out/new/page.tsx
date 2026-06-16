@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PageHeader } from "@/components/ui/page-header"
+import { TablePagination } from "@/components/ui/table-pagination"
 import { BarcodeScannerInput } from "@/components/barcode/barcode-scanner-input"
 import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
@@ -66,6 +67,8 @@ export default function NewStockOutPage() {
 
   // Table items list
   const [items, setItems] = React.useState<StockOutItem[]>([])
+  const [itemPage, setItemPage] = React.useState(1)
+  const itemLimit = 5
 
   // Input refs for keyboard navigation
   const qtyInputRef = React.useRef<HTMLInputElement>(null)
@@ -174,6 +177,12 @@ export default function NewStockOutPage() {
   }
 
   const totalAmount = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0)
+  const paginatedItems = items.slice((itemPage - 1) * itemLimit, itemPage * itemLimit)
+
+  React.useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(items.length / itemLimit))
+    if (itemPage > maxPage) setItemPage(maxPage)
+  }, [items.length, itemPage])
 
   const handleSubmit = async (status: "CONFIRMED" | "DRAFT") => {
     if (!customerId) {
@@ -510,7 +519,7 @@ export default function NewStockOutPage() {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        items.map((item) => {
+                        paginatedItems.map((item) => {
                           const warrantyEnd = (() => {
                             if (!item.warrantyStartDate || item.warrantyMonths <= 0) return null
                             const d = new Date(item.warrantyStartDate)
@@ -565,6 +574,13 @@ export default function NewStockOutPage() {
                     </TableBody>
                   </Table>
                 </div>
+                <TablePagination
+                  page={itemPage}
+                  limit={itemLimit}
+                  total={items.length}
+                  itemLabel="sản phẩm"
+                  onPageChange={setItemPage}
+                />
 
                 <div className="flex justify-between items-center bg-slate-100/50 p-4 rounded-lg border">
                   <span className="font-semibold text-slate-700">Tổng doanh thu xuất:</span>

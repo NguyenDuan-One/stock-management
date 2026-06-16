@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PageHeader } from "@/components/ui/page-header"
+import { TablePagination } from "@/components/ui/table-pagination"
 import { BarcodeScannerInput } from "@/components/barcode/barcode-scanner-input"
 import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
@@ -64,6 +65,8 @@ export default function NewStockInPage() {
 
   // Table items list
   const [items, setItems] = React.useState<StockInItem[]>([])
+  const [itemPage, setItemPage] = React.useState(1)
+  const itemLimit = 5
 
   // Input refs for keyboard navigation
   const qtyInputRef = React.useRef<HTMLInputElement>(null)
@@ -155,6 +158,12 @@ export default function NewStockInPage() {
   }
 
   const totalAmount = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0)
+  const paginatedItems = items.slice((itemPage - 1) * itemLimit, itemPage * itemLimit)
+
+  React.useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(items.length / itemLimit))
+    if (itemPage > maxPage) setItemPage(maxPage)
+  }, [items.length, itemPage])
 
   const handleSubmit = async (status: "COMPLETED" | "DRAFT") => {
     if (!supplierId) {
@@ -424,7 +433,7 @@ export default function NewStockInPage() {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        items.map((item) => (
+                        paginatedItems.map((item) => (
                           <TableRow key={item.id} className="text-xs">
                             <TableCell className="py-2">
                               <span className="font-medium text-slate-800 block">{item.name}</span>
@@ -456,6 +465,13 @@ export default function NewStockInPage() {
                     </TableBody>
                   </Table>
                 </div>
+                <TablePagination
+                  page={itemPage}
+                  limit={itemLimit}
+                  total={items.length}
+                  itemLabel="sản phẩm"
+                  onPageChange={setItemPage}
+                />
 
                 <div className="flex justify-between items-center bg-slate-100/50 p-4 rounded-lg border">
                   <span className="font-semibold text-slate-700">Tổng giá trị đơn nhập:</span>

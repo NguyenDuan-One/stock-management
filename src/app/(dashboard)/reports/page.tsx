@@ -15,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { PageHeader } from "@/components/ui/page-header"
+import { TablePagination } from "@/components/ui/table-pagination"
 import { toast } from "sonner"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import * as XLSX from "xlsx"
@@ -22,6 +23,8 @@ import * as XLSX from "xlsx"
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = React.useState("inventory")
   const [isLoading, setIsLoading] = React.useState(false)
+  const [reportPage, setReportPage] = React.useState(1)
+  const reportLimit = 10
 
   // Data states
   const [inventoryData, setInventoryData] = React.useState<any[]>([])
@@ -44,8 +47,13 @@ export default function ReportsPage() {
   const [profitSummary, setProfitSummary] = React.useState<any>(null)
 
   React.useEffect(() => {
+    setReportPage(1)
     loadReportData()
   }, [activeTab])
+
+  const paginateReport = (data: any[]) => {
+    return data.slice((reportPage - 1) * reportLimit, reportPage * reportLimit)
+  }
 
   const loadReportData = async () => {
     setIsLoading(true)
@@ -137,7 +145,14 @@ export default function ReportsPage() {
         subtitle="Xem và phân tích hoạt động nhập xuất kho và doanh số lợi nhuận"
       />
 
-      <Tabs defaultValue="inventory" onValueChange={setActiveTab} className="w-full">
+      <Tabs
+        defaultValue="inventory"
+        onValueChange={(value) => {
+          setActiveTab(value)
+          setReportPage(1)
+        }}
+        className="w-full"
+      >
         <TabsList className="bg-slate-100 p-1 border rounded-lg justify-start flex flex-wrap h-auto w-full md:w-max">
           <TabsTrigger value="inventory" className="py-2">Báo cáo Tồn kho</TabsTrigger>
           <TabsTrigger value="stock-in" className="py-2">Nhập kho</TabsTrigger>
@@ -231,7 +246,7 @@ export default function ReportsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  inventoryData.map((item) => (
+                  paginateReport(inventoryData).map((item) => (
                     <TableRow key={item.id} className="hover:bg-slate-50/50">
                       <TableCell className="font-mono text-xs font-semibold">{item.sku}</TableCell>
                       <TableCell>
@@ -256,6 +271,13 @@ export default function ReportsPage() {
                 )}
               </TableBody>
             </Table>
+            <TablePagination
+              page={reportPage}
+              limit={reportLimit}
+              total={inventoryData.length}
+              itemLabel="sản phẩm"
+              onPageChange={setReportPage}
+            />
           </div>
         </TabsContent>
 
@@ -270,7 +292,10 @@ export default function ReportsPage() {
               <label className="text-xs font-bold text-slate-600">Đến ngày</label>
               <Input type="date" value={stockInTo} onChange={(e) => setStockInTo(e.target.value)} className="bg-white" />
             </div>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={loadReportData}>
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => {
+              setReportPage(1)
+              loadReportData()
+            }}>
               <Filter className="mr-2 h-4 w-4" /> Lọc báo cáo
             </Button>
             <Button
@@ -330,7 +355,7 @@ export default function ReportsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  stockInData.map((item) => (
+                  paginateReport(stockInData).map((item) => (
                     <TableRow key={item.id} className="hover:bg-slate-50/50">
                       <TableCell className="font-mono font-bold text-blue-600">{item.code}</TableCell>
                       <TableCell className="font-medium text-slate-800">{item.supplier?.name}</TableCell>
@@ -342,6 +367,13 @@ export default function ReportsPage() {
                 )}
               </TableBody>
             </Table>
+            <TablePagination
+              page={reportPage}
+              limit={reportLimit}
+              total={stockInData.length}
+              itemLabel="phiếu"
+              onPageChange={setReportPage}
+            />
           </div>
         </TabsContent>
 
@@ -356,7 +388,10 @@ export default function ReportsPage() {
               <label className="text-xs font-bold text-slate-600">Đến ngày</label>
               <Input type="date" value={stockOutTo} onChange={(e) => setStockOutTo(e.target.value)} className="bg-white" />
             </div>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={loadReportData}>
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => {
+              setReportPage(1)
+              loadReportData()
+            }}>
               <Filter className="mr-2 h-4 w-4" /> Lọc báo cáo
             </Button>
             <Button
@@ -416,7 +451,7 @@ export default function ReportsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  stockOutData.map((item) => (
+                  paginateReport(stockOutData).map((item) => (
                     <TableRow key={item.id} className="hover:bg-slate-50/50">
                       <TableCell className="font-mono font-bold text-blue-600">{item.code}</TableCell>
                       <TableCell className="font-medium text-slate-800">{item.customer?.name || "Khách lẻ"}</TableCell>
@@ -428,6 +463,13 @@ export default function ReportsPage() {
                 )}
               </TableBody>
             </Table>
+            <TablePagination
+              page={reportPage}
+              limit={reportLimit}
+              total={stockOutData.length}
+              itemLabel="phiếu"
+              onPageChange={setReportPage}
+            />
           </div>
         </TabsContent>
 
@@ -495,7 +537,7 @@ export default function ReportsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  warrantyData.map((item) => (
+                  paginateReport(warrantyData).map((item) => (
                     <TableRow key={item.id} className="hover:bg-slate-50/50">
                       <TableCell className="font-mono font-medium text-slate-800">{item.serialNumber || "-"}</TableCell>
                       <TableCell className="font-semibold text-slate-900">{item.product?.name}</TableCell>
@@ -507,6 +549,13 @@ export default function ReportsPage() {
                 )}
               </TableBody>
             </Table>
+            <TablePagination
+              page={reportPage}
+              limit={reportLimit}
+              total={warrantyData.length}
+              itemLabel="hồ sơ"
+              onPageChange={setReportPage}
+            />
           </div>
         </TabsContent>
 
@@ -582,7 +631,7 @@ export default function ReportsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  profitData.map((item) => (
+                  paginateReport(profitData).map((item) => (
                     <TableRow key={item.id} className="hover:bg-slate-50/50 text-xs">
                       <TableCell className="font-mono">{item.sku}</TableCell>
                       <TableCell className="font-semibold text-slate-800">{item.name}</TableCell>
@@ -597,6 +646,13 @@ export default function ReportsPage() {
                 )}
               </TableBody>
             </Table>
+            <TablePagination
+              page={reportPage}
+              limit={reportLimit}
+              total={profitData.length}
+              itemLabel="dòng"
+              onPageChange={setReportPage}
+            />
           </div>
         </TabsContent>
       </Tabs>

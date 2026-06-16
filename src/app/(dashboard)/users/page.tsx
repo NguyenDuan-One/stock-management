@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { PageHeader } from "@/components/ui/page-header"
+import { TablePagination } from "@/components/ui/table-pagination"
 import { usePermissions } from "@/hooks/use-permissions"
 import { toast } from "sonner"
 import { formatDate } from "@/lib/utils"
@@ -38,6 +39,9 @@ export default function UsersPage() {
   const [users, setUsers] = React.useState<any[]>([])
   const [roles, setRoles] = React.useState<any[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
+  const [page, setPage] = React.useState(1)
+  const [total, setTotal] = React.useState(0)
+  const limit = 10
 
   // Dialogs
   const [isOpen, setIsOpen] = React.useState(false)
@@ -56,14 +60,15 @@ export default function UsersPage() {
   React.useEffect(() => {
     fetchUsers()
     fetchRoles()
-  }, [])
+  }, [page])
 
   const fetchUsers = async () => {
     try {
       setIsLoading(true)
-      const res = await fetch("/api/users")
+      const res = await fetch(`/api/users?page=${page}&limit=${limit}`)
       const json = await res.json()
-      setUsers(json)
+      setUsers(Array.isArray(json) ? json : json.data || [])
+      setTotal(json.pagination?.total || 0)
     } catch (error) {
       console.error(error)
       toast.error("Không thể tải danh sách người dùng")
@@ -248,6 +253,13 @@ export default function UsersPage() {
             )}
           </TableBody>
         </Table>
+        <TablePagination
+          page={page}
+          limit={limit}
+          total={total}
+          itemLabel="người dùng"
+          onPageChange={setPage}
+        />
       </div>
 
       {/* Add/Edit Dialog */}

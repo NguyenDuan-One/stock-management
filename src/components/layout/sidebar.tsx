@@ -152,7 +152,7 @@ export function Sidebar({ user, isOpen, setIsOpen }: SidebarProps) {
         </div>
 
         {/* User / Logout */}
-        <div className="border-t border-slate-800 p-4">
+        {/* <div className="border-t border-slate-800 p-4">
           <div className="mb-4 flex items-center gap-3">
             <Avatar className="h-9 w-9 border border-slate-700">
               <AvatarImage src={user?.image || ""} />
@@ -177,7 +177,7 @@ export function Sidebar({ user, isOpen, setIsOpen }: SidebarProps) {
             <LogOut className="h-4 w-4" />
             Đăng xuất
           </Button>
-        </div>
+        </div> */}
       </aside>
     </>
   )

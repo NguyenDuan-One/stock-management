@@ -81,11 +81,11 @@ export async function POST(req: NextRequest) {
       // Calculate total amount
       const totalAmount = items.reduce((sum: number, item: any) => sum + (Number(item.unitPrice) * Number(item.quantity)), 0)
 
-      // Generate code PX-YYYYMM-NNNN
+      // Generate code PXYYYYMMNNNN
       const date = new Date(exportDate || Date.now())
       const currentYear = date.getFullYear()
       const currentMonth = (date.getMonth() + 1).toString().padStart(2, "0")
-      const prefix = `PX-${currentYear}${currentMonth}-`
+      const prefix = `PX${currentYear}${currentMonth}`
       const count = await tx.stockOut.count({
         where: { code: { startsWith: prefix } }
       })

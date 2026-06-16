@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+import { TablePagination } from "@/components/ui/table-pagination"
 
 interface Column {
   key: string
@@ -46,10 +46,6 @@ export function DataTable({
   onSearchChange,
   pagination,
 }: DataTableProps) {
-  const totalPages = pagination
-    ? Math.ceil(pagination.total / pagination.limit)
-    : 0
-
   return (
     <div className="space-y-4">
       {searchable && (
@@ -110,61 +106,13 @@ export function DataTable({
         </Table>
       </div>
 
-      {pagination && totalPages > 1 && (
-        <div className="flex items-center justify-between py-2">
-          <div className="text-sm text-slate-500">
-            Hiển thị {(pagination.page - 1) * pagination.limit + 1} -{" "}
-            {Math.min(pagination.page * pagination.limit, pagination.total)} trong{" "}
-            {pagination.total} kết quả
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={pagination.page <= 1}
-              onClick={() => pagination.onPageChange(pagination.page - 1)}
-            >
-              Trước
-            </Button>
-            {Array.from({ length: totalPages }).map((_, idx) => {
-              const p = idx + 1
-              // Simple pagination rendering
-              if (
-                p === 1 ||
-                p === totalPages ||
-                Math.abs(p - pagination.page) <= 1
-              ) {
-                return (
-                  <Button
-                    key={p}
-                    variant={pagination.page === p ? "default" : "outline"}
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    onClick={() => pagination.onPageChange(p)}
-                  >
-                    {p}
-                  </Button>
-                )
-              }
-              if (p === 2 || p === totalPages - 1) {
-                return (
-                  <span key={p} className="text-slate-400 px-1">
-                    ...
-                  </span>
-                )
-              }
-              return null
-            })}
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={pagination.page >= totalPages}
-              onClick={() => pagination.onPageChange(pagination.page + 1)}
-            >
-              Sau
-            </Button>
-          </div>
-        </div>
+      {pagination && (
+        <TablePagination
+          page={pagination.page}
+          limit={pagination.limit}
+          total={pagination.total}
+          onPageChange={pagination.onPageChange}
+        />
       )}
     </div>
   )

@@ -463,10 +463,10 @@ async function main() {
 
   if (adminUser && dellSupplier && dellLaptop && dellMonitor && dellServer) {
     const stockIn1 = await prisma.stockIn.upsert({
-      where: { code: "PN-2024-001" },
+      where: { code: "PN2024010001" },
       update: {},
       create: {
-        code: "PN-2024-001",
+        code: "PN2024010001",
         supplierId: dellSupplier.id,
         importDate: new Date("2024-01-15"),
         poNumber: "PO-2024-0115",
@@ -512,15 +512,15 @@ async function main() {
         },
       ],
     });
-    console.log("✅ Created stock-in PN-2024-001");
+    console.log("✅ Created stock-in PN2024010001");
   }
 
   if (adminUser && hpSupplier && hpLaptop) {
     const stockIn2 = await prisma.stockIn.upsert({
-      where: { code: "PN-2024-002" },
+      where: { code: "PN2024020001" },
       update: {},
       create: {
-        code: "PN-2024-002",
+        code: "PN2024020001",
         supplierId: hpSupplier.id,
         importDate: new Date("2024-02-20"),
         poNumber: "PO-2024-0220",
@@ -546,15 +546,15 @@ async function main() {
         },
       ],
     });
-    console.log("✅ Created stock-in PN-2024-002");
+    console.log("✅ Created stock-in PN2024020001");
   }
 
   if (adminUser && ciscoSupplier && ciscoSwitch) {
     const stockIn3 = await prisma.stockIn.upsert({
-      where: { code: "PN-2024-003" },
+      where: { code: "PN2024030001" },
       update: {},
       create: {
-        code: "PN-2024-003",
+        code: "PN2024030001",
         supplierId: ciscoSupplier.id,
         importDate: new Date("2024-03-10"),
         poNumber: "PO-2024-0310-CISCO",
@@ -579,7 +579,7 @@ async function main() {
         },
       ],
     });
-    console.log("✅ Created stock-in PN-2024-003");
+    console.log("✅ Created stock-in PN2024030001");
   }
 
   // ============================================================
@@ -595,10 +595,10 @@ async function main() {
 
   if (adminUser && acbCustomer && hpLaptopFresh && dellMonitorFresh) {
     const stockOut1 = await prisma.stockOut.upsert({
-      where: { code: "PX-2024-001" },
+      where: { code: "PX2024030001" },
       update: {},
       create: {
-        code: "PX-2024-001",
+        code: "PX2024030001",
         customerId: acbCustomer.id,
         exportDate: new Date("2024-03-01"),
         poNumber: "ACB-PO-2024-001",
@@ -666,15 +666,15 @@ async function main() {
     // Update product quantities
     await prisma.product.update({ where: { sku: "HP-EB840G9" }, data: { quantity: { decrement: 5 } } });
     await prisma.product.update({ where: { sku: "DELL-U2422H" }, data: { quantity: { decrement: 5 } } });
-    console.log("✅ Created stock-out PX-2024-001");
+    console.log("✅ Created stock-out PX2024030001");
   }
 
   if (adminUser && evnCustomer && dellLaptopFresh && ciscSwitchFresh) {
     const stockOut2 = await prisma.stockOut.upsert({
-      where: { code: "PX-2024-002" },
+      where: { code: "PX2024040001" },
       update: {},
       create: {
-        code: "PX-2024-002",
+        code: "PX2024040001",
         customerId: evnCustomer.id,
         exportDate: new Date("2024-04-15"),
         poNumber: "EVN-PO-2024-005",
@@ -742,7 +742,7 @@ async function main() {
     // Update product quantities
     await prisma.product.update({ where: { sku: "DELL-LAT5420" }, data: { quantity: { decrement: 5 } } });
     await prisma.product.update({ where: { sku: "CISCO-2960X24" }, data: { quantity: { decrement: 3 } } });
-    console.log("✅ Created stock-out PX-2024-002");
+    console.log("✅ Created stock-out PX2024040001");
   }
 
   console.log("\n🎉 Seed completed successfully!");

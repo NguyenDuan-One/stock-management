@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Search, Loader2, AlertTriangle, ArrowDown } from "lucide-react"
+import { Search, Loader2, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { PageHeader } from "@/components/ui/page-header"
+import { TablePagination } from "@/components/ui/table-pagination"
 import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
 
@@ -22,6 +23,8 @@ export default function InventoryPage() {
   const [isLoading, setIsLoading] = React.useState(true)
   const [search, setSearch] = React.useState("")
   const [filterLowStock, setFilterLowStock] = React.useState(false)
+  const [page, setPage] = React.useState(1)
+  const limit = 10
 
   React.useEffect(() => {
     fetchInventory()
@@ -30,7 +33,7 @@ export default function InventoryPage() {
   const fetchInventory = async () => {
     try {
       setIsLoading(true)
-      const res = await fetch("/api/products?limit=100")
+      const res = await fetch("/api/products?limit=1000")
       const json = await res.json()
       setProducts(json.data || [])
     } catch (error) {
@@ -52,6 +55,7 @@ export default function InventoryPage() {
     }
     return matchesSearch
   })
+  const paginatedProducts = filteredProducts.slice((page - 1) * limit, page * limit)
 
   // Calculate totals
   const totalItems = filteredProducts.reduce((sum, p) => sum + p.quantity, 0)
@@ -102,7 +106,10 @@ export default function InventoryPage() {
           <Input
             placeholder="Tìm theo Tên, SKU, Barcode..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value)
+              setPage(1)
+            }}
             className="pl-9 bg-white"
           />
         </div>
@@ -110,7 +117,10 @@ export default function InventoryPage() {
           <Button
             variant={filterLowStock ? "default" : "outline"}
             className={filterLowStock ? "bg-red-600 hover:bg-red-700 text-white" : ""}
-            onClick={() => setFilterLowStock(!filterLowStock)}
+            onClick={() => {
+              setFilterLowStock(!filterLowStock)
+              setPage(1)
+            }}
           >
             <AlertTriangle className="mr-2 h-4 w-4" />
             Cảnh báo hết hàng ({lowStockCount})
@@ -146,7 +156,7 @@ export default function InventoryPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredProducts.map((prod) => {
+              paginatedProducts.map((prod) => {
                 const isWarning = prod.quantity <= prod.minQuantity
                 const itemTotalValue = prod.quantity * (prod.costPrice || 0)
                 
@@ -188,6 +198,13 @@ export default function InventoryPage() {
             )}
           </TableBody>
         </Table>
+        <TablePagination
+          page={page}
+          limit={limit}
+          total={filteredProducts.length}
+          itemLabel="sản phẩm"
+          onPageChange={setPage}
+        />
       </div>
     </div>
   )

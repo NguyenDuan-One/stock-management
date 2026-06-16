@@ -72,11 +72,11 @@ export async function POST(req: NextRequest) {
 
     // Run in transaction
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Generate code PN-YYYYMM-NNNN
+      // 1. Generate code PNYYYYMMNNNN
       const date = new Date(importDate || Date.now())
       const currentYear = date.getFullYear()
       const currentMonth = (date.getMonth() + 1).toString().padStart(2, "0")
-      const prefix = `PN-${currentYear}${currentMonth}-`
+      const prefix = `PN${currentYear}${currentMonth}`
       const count = await tx.stockIn.count({
         where: { code: { startsWith: prefix } }
       })

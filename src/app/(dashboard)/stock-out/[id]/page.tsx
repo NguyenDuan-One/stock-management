@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { PageHeader } from "@/components/ui/page-header"
+import { TablePagination } from "@/components/ui/table-pagination"
 import { toast } from "sonner"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
@@ -28,6 +29,8 @@ export default function StockOutDetailPage() {
   const id = params.id as string
   const [stockOut, setStockOut] = React.useState<any>(null)
   const [isLoading, setIsLoading] = React.useState(true)
+  const [itemPage, setItemPage] = React.useState(1)
+  const itemLimit = 10
 
   React.useEffect(() => {
     fetchStockOutDetails()
@@ -54,6 +57,13 @@ export default function StockOutDetailPage() {
   const [isEditing, setIsEditing] = React.useState(false)
   const [editData, setEditData] = React.useState({ poNumber: "", contractNumber: "", notes: "" })
   const [isSaving, setIsSaving] = React.useState(false)
+
+
+  React.useEffect(() => {
+    const totalItems = stockOut?.items?.length || 0
+    const maxPage = Math.max(1, Math.ceil(totalItems / itemLimit))
+    if (itemPage > maxPage) setItemPage(maxPage)
+  }, [stockOut?.items?.length, itemPage])
 
   const handlePrint = () => {
     window.print()
@@ -163,6 +173,9 @@ export default function StockOutDetailPage() {
     }
   }
 
+  const detailItems = stockOut?.items || []
+  const paginatedItems = detailItems.slice((itemPage - 1) * itemLimit, itemPage * itemLimit)
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto print:block print:max-w-none print:p-0 print:border-none print:shadow-none">
       <div className="flex items-center gap-2 print:hidden">
@@ -266,9 +279,9 @@ export default function StockOutDetailPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {stockOut.items?.map((item: any, idx: number) => (
+                {paginatedItems.map((item: any, idx: number) => (
                   <TableRow key={item.id} className="hover:bg-slate-50/50">
-                    <TableCell className="font-medium">{idx + 1}</TableCell>
+                    <TableCell className="font-medium">{(itemPage - 1) * itemLimit + idx + 1}</TableCell>
                     <TableCell className="font-semibold text-slate-800">{item.product?.name}</TableCell>
                     <TableCell className="font-mono text-xs">{item.product?.sku}</TableCell>
                     <TableCell className="font-mono font-medium text-slate-600">{item.serialNumber || "-"}</TableCell>
@@ -289,6 +302,15 @@ export default function StockOutDetailPage() {
                 ))}
               </TableBody>
             </Table>
+          </div>
+          <div className="print:hidden">
+            <TablePagination
+              page={itemPage}
+              limit={itemLimit}
+              total={detailItems.length}
+              itemLabel="s?n ph?m"
+              onPageChange={setItemPage}
+            />
           </div>
         </div>
 

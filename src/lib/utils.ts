@@ -48,7 +48,10 @@ export function getWarrantyStatus(endDate: Date | string | null | undefined): {
 }
 
 export function generateCode(prefix: string, sequence: number): string {
-  return `${prefix}-${new Date().getFullYear()}-${String(sequence).padStart(4, "0")}`;
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  return `${prefix}${year}${month}${String(sequence).padStart(4, "0")}`;
 }
 
 export function getProductStatusLabel(status: string): string {

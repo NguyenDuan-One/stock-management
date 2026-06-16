@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { PageHeader } from "@/components/ui/page-header"
+import { TablePagination } from "@/components/ui/table-pagination"
 import { toast } from "sonner"
 import { formatCurrency, formatDate } from "@/lib/utils"
 
@@ -204,33 +205,14 @@ export default function StockInListPage() {
             )}
           </TableBody>
         </Table>
+        <TablePagination
+          page={page}
+          limit={limit}
+          total={total}
+          itemLabel="phiếu"
+          onPageChange={setPage}
+        />
       </div>
-
-      {total > limit && (
-        <div className="flex items-center justify-between py-2">
-          <div className="text-sm text-slate-500">
-            Hiển thị {(page - 1) * limit + 1} - {Math.min(page * limit, total)} trong {total} phiếu
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage(page - 1)}
-            >
-              Trước
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page * limit >= total}
-              onClick={() => setPage(page + 1)}
-            >
-              Sau
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

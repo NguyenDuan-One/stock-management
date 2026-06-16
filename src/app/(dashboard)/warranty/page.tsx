@@ -15,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { PageHeader } from "@/components/ui/page-header"
+import { TablePagination } from "@/components/ui/table-pagination"
 import { BarcodeScannerInput } from "@/components/barcode/barcode-scanner-input"
 import { toast } from "sonner"
 import { formatDate } from "@/lib/utils"
@@ -185,33 +186,14 @@ export default function WarrantyPage() {
                 )}
               </TableBody>
             </Table>
+            <TablePagination
+              page={page}
+              limit={limit}
+              total={total}
+              itemLabel="hồ sơ"
+              onPageChange={setPage}
+            />
           </div>
-
-          {total > limit && (
-            <div className="flex items-center justify-between py-2 mt-4">
-              <div className="text-sm text-slate-500">
-                Hiển thị {(page - 1) * limit + 1} - {Math.min(page * limit, total)} trong {total} hồ sơ
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page <= 1}
-                  onClick={() => setPage(page - 1)}
-                >
-                  Trước
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page * limit >= total}
-                  onClick={() => setPage(page + 1)}
-                >
-                  Sau
-                </Button>
-              </div>
-            </div>
-          )}
         </TabsContent>
       </Tabs>
     </div>

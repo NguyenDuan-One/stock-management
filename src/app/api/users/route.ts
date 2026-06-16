@@ -8,25 +8,43 @@ export async function GET(req: NextRequest) {
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        fullName: true,
-        phone: true,
-        isActive: true,
-        createdAt: true,
-        userRoles: {
-          include: {
-            role: { select: { id: true, name: true, displayName: true } }
-          }
-        }
-      },
-      orderBy: { createdAt: "desc" }
-    })
+    const { searchParams } = new URL(req.url)
+    const page = parseInt(searchParams.get("page") || "1")
+    const limit = parseInt(searchParams.get("limit") || "10")
+    const skip = (page - 1) * limit
 
-    return NextResponse.json(users)
+    const [total, users] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.findMany({
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          fullName: true,
+          phone: true,
+          isActive: true,
+          createdAt: true,
+          userRoles: {
+            include: {
+              role: { select: { id: true, name: true, displayName: true } }
+            }
+          }
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" }
+      })
+    ])
+
+    return NextResponse.json({
+      data: users,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
   } catch (error) {
     console.error("Users API error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

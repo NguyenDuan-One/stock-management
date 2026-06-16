@@ -186,9 +186,9 @@ StockOut ──── StockOutItem ──── Product
 
 | Model | Mô tả |
 |-------|-------|
-| `StockIn` | Phiếu nhập kho. Code format: `PN-YYYY-NNNN`. Fields: `supplierId`, `importDate`, `poNumber`, `contractNumber`, `totalAmount`, `status`(DRAFT/CONFIRMED/CANCELLED) |
+| `StockIn` | Phiếu nhập kho. Code format: `PNYYYYMMNNNN`. Fields: `supplierId`, `importDate`, `poNumber`, `contractNumber`, `totalAmount`, `status`(DRAFT/CONFIRMED/CANCELLED) |
 | `StockInItem` | Dòng chi tiết phiếu nhập: `productId`, `serialNumber`, `quantity`, `unitPrice`, `totalPrice`, `warrantyMonths`, `warrantyExpiry` |
-| `StockOut` | Phiếu xuất kho. Code format: `PX-YYYY-NNNN`. Fields: `customerId`, `exportDate`, `poNumber`, `contractNumber`, `totalAmount`, `status` |
+| `StockOut` | Phiếu xuất kho. Code format: `PXYYYYMMNNNN`. Fields: `customerId`, `exportDate`, `poNumber`, `contractNumber`, `totalAmount`, `status` |
 | `StockOutItem` | Dòng chi tiết phiếu xuất: `productId`, `serialNumber`, `quantity`, `unitPrice`, `totalPrice`, `warrantyMonths`, `warrantyStartDate`, `warrantyEndDate` |
 
 ### 3.5 Nhóm Bảo hành & Lịch sử
@@ -349,8 +349,8 @@ User (Staff/Manager/Admin)
 ```
 prisma.$transaction(async (tx) => {
   1. VALIDATE: supplierId và items[] không được rỗng
-  2. GENERATE CODE: Đếm số phiếu trong năm → "PN-{YYYY}-{NNNN}"
-     ví dụ: PN-2026-0001
+  2. GENERATE CODE: Đếm số phiếu trong tháng → "PN{YYYY}{MM}{NNNN}"
+     ví dụ: PN2026060001
   3. CALCULATE: totalAmount = Σ(unitPrice × quantity)
   4. CREATE StockIn record
   5. CREATE StockInItem[] (nested create) với:
@@ -373,9 +373,9 @@ prisma.$transaction(async (tx) => {
 
 ### 6.3 Mã phiếu nhập
 
-- Format: **`PN-YYYY-NNNN`**
-- Ví dụ: `PN-2026-0001`, `PN-2026-0042`
-- Đếm số phiếu có `code LIKE 'PN-{currentYear}-%'` để xác định sequence tiếp theo
+- Format: **`PNYYYYMMNNNN`**
+- Ví dụ: `PN2026060001`, `PN2026060042`
+- Đếm số phiếu có `code LIKE 'PN{currentYear}{currentMonth}%'` để xác định sequence tiếp theo
 
 ### 6.4 API GET /api/stock-in — Tìm kiếm
 
@@ -423,8 +423,8 @@ prisma.$transaction(async (tx) => {
      - Kiểm tra: product.quantity >= item.quantity
      - Nếu không đủ → throw Error (transaction rollback)
 
-  2. GENERATE CODE: "PX-{YYYY}-{NNNN}"
-     ví dụ: PX-2026-0001
+  2. GENERATE CODE: "PX{YYYY}{MM}{NNNN}"
+     ví dụ: PX2026060001
 
   3. CALCULATE: totalAmount = Σ(unitPrice × quantity)
 
@@ -463,8 +463,8 @@ nếu bất kỳ bước nào thất bại (ví dụ: thiếu hàng), toàn bộ
 
 ### 7.3 Mã phiếu xuất
 
-- Format: **`PX-YYYY-NNNN`**
-- Ví dụ: `PX-2026-0001`, `PX-2026-0015`
+- Format: **`PXYYYYMMNNNN`**
+- Ví dụ: `PX2026060001`, `PX2026060015`
 
 ### 7.4 Tính toán ngày bảo hành
 
@@ -505,7 +505,7 @@ Mỗi lần nhập/xuất tạo 1 record:
   balanceBefore: tồn kho trước khi thay đổi,
   balanceAfter: tồn kho sau khi thay đổi,
   referenceId: id phiếu,
-  referenceCode: mã phiếu (PN-xxxx / PX-xxxx)
+  referenceCode: mã phiếu (PNxxxx / PXxxxx)
 }
 ```
 
@@ -840,7 +840,7 @@ NODE_ENV="development"
 | `formatDateTime(date)` | Format ngày giờ: `dd/MM/yyyy HH:mm` |
 | `formatRelativeTime(date)` | Thời gian tương đối: "3 giờ trước" |
 | `getWarrantyStatus(endDate)` | Trả về `{status, label, daysLeft}` |
-| `generateCode(prefix, seq)` | Tạo mã: `PN-2026-0001` |
+| `generateCode(prefix, seq)` | Tạo mã: `PN2026060001` |
 
 ---
 

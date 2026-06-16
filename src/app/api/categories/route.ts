@@ -7,17 +7,35 @@ export async function GET(req: NextRequest) {
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const categories = await prisma.productCategory.findMany({
-      where: { isActive: true },
-      include: {
-        _count: {
-          select: { products: true }
-        }
-      },
-      orderBy: { createdAt: "desc" }
-    })
+    const { searchParams } = new URL(req.url)
+    const page = parseInt(searchParams.get("page") || "1")
+    const limit = parseInt(searchParams.get("limit") || "10")
+    const skip = (page - 1) * limit
 
-    return NextResponse.json(categories)
+    const [total, categories] = await Promise.all([
+      prisma.productCategory.count({ where: { isActive: true } }),
+      prisma.productCategory.findMany({
+        where: { isActive: true },
+        include: {
+          _count: {
+            select: { products: true }
+          }
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" }
+      })
+    ])
+
+    return NextResponse.json({
+      data: categories,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
   } catch (error) {
     console.error("Categories API error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

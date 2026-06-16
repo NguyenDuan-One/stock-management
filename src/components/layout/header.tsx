@@ -17,11 +17,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 
 interface HeaderProps {
   user?: {
     name?: string | null
+    fullName?: string | null
     email?: string | null
     image?: string | null
     roles?: string[]
@@ -31,6 +31,8 @@ interface HeaderProps {
 
 export function Header({ user, onMenuClick }: HeaderProps) {
   const pathname = usePathname()
+  const displayName = user?.fullName || user?.name || user?.email || "User"
+  const roleText = user?.roles?.join(", ")
 
   // Generate breadcrumb from pathname
   const paths = pathname.split("/").filter(Boolean)
@@ -80,26 +82,39 @@ export function Header({ user, onMenuClick }: HeaderProps) {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.image || ""} alt={user?.name || ""} />
-                <AvatarFallback>{user?.name?.charAt(0) || "U"}</AvatarFallback>
+            <Button variant="ghost" className="relative h-9 gap-2 rounded-full px-2">
+              <Avatar className="h-8 w-8 bg-slate-200 ring-1 ring-slate-300">
+                <AvatarImage src={user?.image || ""} alt={displayName} />
+                <AvatarFallback className="bg-slate-200 text-slate-700">
+                  {displayName.charAt(0)}
+                </AvatarFallback>
               </Avatar>
+              <span className="hidden max-w-40 truncate text-sm font-medium text-slate-700 sm:inline">
+                {displayName}
+              </span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end" forceMount>
-            <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">{user?.name}</p>
-                <p className="text-xs leading-none text-muted-foreground">
-                  {user?.email}
-                </p>
-                <div className="mt-2 flex gap-1">
-                  {user?.roles?.map((role) => (
-                    <Badge key={role} variant="secondary" className="text-[10px]">
-                      {role}
-                    </Badge>
-                  ))}
+          <DropdownMenuContent className="w-72 p-2" align="end" forceMount>
+            <DropdownMenuLabel className="p-2 font-normal">
+              <div className="flex items-start gap-3">
+                <Avatar className="h-10 w-10 shrink-0 bg-slate-200 ring-1 ring-slate-300">
+                  <AvatarImage src={user?.image || ""} alt={displayName} />
+                  <AvatarFallback className="bg-slate-200 font-semibold text-slate-700">
+                    {displayName.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold leading-5 text-slate-900">
+                    {displayName}
+                    {roleText && (
+                      <span className="ml-1 font-medium text-slate-500">
+                        ({roleText})
+                      </span>
+                    )}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs leading-4 text-slate-500">
+                    {user?.email || "Chưa có email"}
+                  </p>
                 </div>
               </div>
             </DropdownMenuLabel>

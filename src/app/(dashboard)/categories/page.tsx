@@ -23,11 +23,15 @@ import {
 } from "@/components/ui/dialog"
 import { PageHeader } from "@/components/ui/page-header"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { TablePagination } from "@/components/ui/table-pagination"
 import { toast } from "sonner"
 
 export default function CategoriesPage() {
   const [categories, setCategories] = React.useState<any[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
+  const [page, setPage] = React.useState(1)
+  const [total, setTotal] = React.useState(0)
+  const limit = 10
   
   // Dialog state
   const [isOpen, setIsOpen] = React.useState(false)
@@ -45,14 +49,15 @@ export default function CategoriesPage() {
 
   React.useEffect(() => {
     fetchCategories()
-  }, [])
+  }, [page])
 
   const fetchCategories = async () => {
     try {
       setIsLoading(true)
-      const res = await fetch("/api/categories")
+      const res = await fetch(`/api/categories?page=${page}&limit=${limit}`)
       const json = await res.json()
       setCategories(Array.isArray(json) ? json : json.data || [])
+      setTotal(json.pagination?.total || 0)
     } catch (error) {
       console.error(error)
       toast.error("Không thể tải danh sách danh mục")
@@ -175,7 +180,7 @@ export default function CategoriesPage() {
             ) : (
               categories.map((cat, idx) => (
                 <TableRow key={cat.id} className="hover:bg-slate-50/50">
-                  <TableCell className="font-medium">{idx + 1}</TableCell>
+                  <TableCell className="font-medium">{(page - 1) * limit + idx + 1}</TableCell>
                   <TableCell className="font-mono font-medium text-slate-900">{cat.code}</TableCell>
                   <TableCell className="font-semibold text-slate-800">{cat.name}</TableCell>
                   <TableCell className="text-slate-500 max-w-xs truncate">{cat.description || "-"}</TableCell>
@@ -203,6 +208,13 @@ export default function CategoriesPage() {
             )}
           </TableBody>
         </Table>
+        <TablePagination
+          page={page}
+          limit={limit}
+          total={total}
+          itemLabel="danh mục"
+          onPageChange={setPage}
+        />
       </div>
 
       {/* Add/Edit Dialog */}

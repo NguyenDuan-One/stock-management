@@ -23,12 +23,16 @@ import {
 } from "@/components/ui/dialog"
 import { PageHeader } from "@/components/ui/page-header"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { TablePagination } from "@/components/ui/table-pagination"
 import { toast } from "sonner"
 
 export default function CustomersPage() {
   const [customers, setCustomers] = React.useState<any[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [search, setSearch] = React.useState("")
+  const [page, setPage] = React.useState(1)
+  const [total, setTotal] = React.useState(0)
+  const limit = 10
   
   // Dialog state
   const [isOpen, setIsOpen] = React.useState(false)
@@ -51,14 +55,20 @@ export default function CustomersPage() {
 
   React.useEffect(() => {
     fetchCustomers()
-  }, [search])
+  }, [search, page])
 
   const fetchCustomers = async () => {
     try {
       setIsLoading(true)
-      const res = await fetch(`/api/customers?search=${encodeURIComponent(search)}`)
+      const queryParams = new URLSearchParams({
+        search,
+        page: String(page),
+        limit: String(limit),
+      })
+      const res = await fetch(`/api/customers?${queryParams}`)
       const json = await res.json()
       setCustomers(Array.isArray(json) ? json : json.data || [])
+      setTotal(json.pagination?.total || 0)
     } catch (error) {
       console.error(error)
       toast.error("Không thể tải danh sách khách hàng")
@@ -177,7 +187,10 @@ export default function CustomersPage() {
           <Input
             placeholder="Tìm theo tên, mã, điện thoại..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value)
+              setPage(1)
+            }}
             className="pl-9 bg-white"
           />
         </div>
@@ -213,7 +226,7 @@ export default function CustomersPage() {
             ) : (
               customers.map((cust, idx) => (
                 <TableRow key={cust.id} className="hover:bg-slate-50/50">
-                  <TableCell className="font-medium">{idx + 1}</TableCell>
+                  <TableCell className="font-medium">{(page - 1) * limit + idx + 1}</TableCell>
                   <TableCell className="font-mono font-medium text-slate-900">{cust.code}</TableCell>
                   <TableCell>
                     <div className="font-semibold text-slate-800">{cust.name}</div>
@@ -263,6 +276,13 @@ export default function CustomersPage() {
             )}
           </TableBody>
         </Table>
+        <TablePagination
+          page={page}
+          limit={limit}
+          total={total}
+          itemLabel="khách hàng"
+          onPageChange={setPage}
+        />
       </div>
 
       {/* Add/Edit Dialog */}

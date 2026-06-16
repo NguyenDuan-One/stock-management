@@ -8,6 +8,7 @@ interface DashboardLayoutProps {
   children: React.ReactNode
   user?: {
     name?: string | null
+    fullName?: string | null
     email?: string | null
     image?: string | null
     roles?: string[]

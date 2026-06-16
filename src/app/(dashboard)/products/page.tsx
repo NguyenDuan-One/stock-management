@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { PageHeader } from "@/components/ui/page-header"
+import { TablePagination } from "@/components/ui/table-pagination"
 import { BarcodeScannerInput } from "@/components/barcode/barcode-scanner-input"
 import { formatCurrency } from "@/lib/utils"
 import { toast } from "sonner"
@@ -25,6 +26,9 @@ export default function ProductsPage() {
   const [categories, setCategories] = React.useState<any[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [search, setSearch] = React.useState("")
+  const [page, setPage] = React.useState(1)
+  const [total, setTotal] = React.useState(0)
+  const limit = 10
   
   // Dialog state
   const [isOpen, setIsOpen] = React.useState(false)
@@ -43,14 +47,20 @@ export default function ProductsPage() {
   React.useEffect(() => {
     fetchProducts()
     fetchCategories()
-  }, [search])
+  }, [search, page])
 
   const fetchProducts = async () => {
     try {
       setIsLoading(true)
-      const res = await fetch(`/api/products?search=${encodeURIComponent(search)}&limit=50`)
+      const queryParams = new URLSearchParams({
+        search,
+        page: String(page),
+        limit: String(limit),
+      })
+      const res = await fetch(`/api/products?${queryParams}`)
       const json = await res.json()
       setProducts(json.data || [])
+      setTotal(json.pagination?.total || 0)
     } catch (error) {
       console.error("Failed to fetch products:", error)
       toast.error("Không thể tải danh sách sản phẩm")
@@ -147,12 +157,18 @@ export default function ProductsPage() {
               placeholder="Tìm kiếm theo Tên, SKU, Barcode..." 
               className="pl-9 h-10 w-full bg-white"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
             />
           </div>
           <div className="w-full sm:w-auto shrink-0 relative">
              <BarcodeScannerInput 
-               onScan={(val) => setSearch(val)} 
+               onScan={(val) => {
+                 setSearch(val)
+                 setPage(1)
+               }} 
                placeholder="Quét mã vạch tìm kiếm..." 
              />
           </div>
@@ -231,6 +247,13 @@ export default function ProductsPage() {
             </TableBody>
           </Table>
         </div>
+        <TablePagination
+          page={page}
+          limit={limit}
+          total={total}
+          itemLabel="sản phẩm"
+          onPageChange={setPage}
+        />
       </div>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>

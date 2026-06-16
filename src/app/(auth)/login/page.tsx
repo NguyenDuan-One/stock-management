@@ -192,14 +192,14 @@ export default function LoginPage() {
               )}
             </Button>
             
-            <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
+            {/* <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
               <p className="font-semibold mb-1">Tài khoản Demo:</p>
               <ul className="space-y-1 list-disc list-inside">
                 <li>Admin: <span className="font-mono bg-blue-100 px-1 rounded">admin</span> / <span className="font-mono bg-blue-100 px-1 rounded">Admin@123</span></li>
                 <li>Manager: <span className="font-mono bg-blue-100 px-1 rounded">manager</span> / <span className="font-mono bg-blue-100 px-1 rounded">Admin@123</span></li>
                 <li>Staff: <span className="font-mono bg-blue-100 px-1 rounded">staff1</span> / <span className="font-mono bg-blue-100 px-1 rounded">Admin@123</span></li>
               </ul>
-            </div>
+            </div> */}
           </form>
         </div>
       </div>
