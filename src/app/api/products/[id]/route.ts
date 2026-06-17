@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const resolvedParams = await Promise.resolve(params)
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const product = await prisma.product.findUnique({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       include: {
         category: true,
         inventoryTransactions: {
@@ -27,8 +28,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const resolvedParams = await Promise.resolve(params)
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
@@ -41,7 +43,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const existingSku = await prisma.product.findFirst({ 
       where: { 
         sku,
-        id: { not: params.id }
+        id: { not: resolvedParams.id }
       } 
     })
     
@@ -50,7 +52,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
 
     const product = await prisma.product.update({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       data: {
         name,
         sku,
@@ -83,13 +85,14 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const resolvedParams = await Promise.resolve(params)
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const product = await prisma.product.update({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       data: { isActive: false }
     })
 

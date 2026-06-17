@@ -21,7 +21,7 @@ export function BarcodeScannerInput({
   const inputRef = useRef<HTMLInputElement>(null)
   const lastKeyTime = useRef<number>(0)
   const keyBuffer = useRef<string[]>([])
-  const scanTimeout = useRef<NodeJS.Timeout>()
+  const scanTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [value, setValue] = useState("")
   const [isScanning, setIsScanning] = useState(false)
 
@@ -81,7 +81,7 @@ export function BarcodeScannerInput({
     // Detect fast input (barcode scanner typically inputs at < 50ms per char)
     if (timeDiff < 50) {
       keyBuffer.current.push(e.key)
-      clearTimeout(scanTimeout.current)
+      if (scanTimeout.current) clearTimeout(scanTimeout.current)
       scanTimeout.current = setTimeout(() => {
         keyBuffer.current = []
       }, 200)

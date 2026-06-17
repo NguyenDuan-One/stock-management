@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const resolvedParams = await Promise.resolve(params)
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const category = await prisma.productCategory.findUnique({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
     })
 
     if (!category) return NextResponse.json({ error: "Not found" }, { status: 404 })
@@ -20,8 +21,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const resolvedParams = await Promise.resolve(params)
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
@@ -31,7 +33,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const existingCode = await prisma.productCategory.findFirst({ 
       where: { 
         code,
-        id: { not: params.id }
+        id: { not: resolvedParams.id }
       } 
     })
     
@@ -40,7 +42,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
 
     const category = await prisma.productCategory.update({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       data: {
         name,
         code,
@@ -66,14 +68,15 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const resolvedParams = await Promise.resolve(params)
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     // Soft delete
     const category = await prisma.productCategory.update({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       data: { isActive: false }
     })
 

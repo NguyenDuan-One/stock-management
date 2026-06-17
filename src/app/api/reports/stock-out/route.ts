@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 
     const summary = stockOuts.reduce(
       (acc, item) => {
-        acc.totalRevenue += item.totalAmount
+        acc.totalRevenue += Number(item.totalAmount)
         acc.totalItems += item.items.reduce((sum, i) => sum + i.quantity, 0)
         acc.count++
         return acc

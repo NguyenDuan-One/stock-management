@@ -18,8 +18,8 @@ export async function GET(req: NextRequest) {
     const summary = products.reduce(
       (acc, p) => {
         acc.totalQty += p.quantity
-        acc.totalCostValue += p.quantity * (p.costPrice || 0)
-        acc.totalSellValue += p.quantity * (p.sellingPrice || 0)
+        acc.totalCostValue += p.quantity * Number(p.costPrice || 0)
+        acc.totalSellValue += p.quantity * Number(p.sellingPrice || 0)
         if (p.quantity <= p.minQuantity) acc.lowStockCount++
         return acc
       },
