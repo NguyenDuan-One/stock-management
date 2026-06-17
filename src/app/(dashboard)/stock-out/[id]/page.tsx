@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { PrintCompanyHeader } from "@/components/stock/print-company-header"
 
 export default function StockOutDetailPage() {
   const router = useRouter()
@@ -30,11 +31,22 @@ export default function StockOutDetailPage() {
   const [stockOut, setStockOut] = React.useState<any>(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const [itemPage, setItemPage] = React.useState(1)
+  const [companySettings, setCompanySettings] = React.useState<any>(null)
   const itemLimit = 10
 
   React.useEffect(() => {
     fetchStockOutDetails()
+    fetchCompanySettings()
   }, [id])
+
+  const fetchCompanySettings = async () => {
+    try {
+      const res = await fetch("/api/settings/company")
+      if (res.ok) setCompanySettings(await res.json())
+    } catch (error) {
+      console.error("Company settings load error:", error)
+    }
+  }
 
   const fetchStockOutDetails = async () => {
     try {
@@ -204,6 +216,8 @@ export default function StockOutDetailPage() {
 
       {/* Printable Area */}
       <div className="print-slip space-y-6 bg-white p-6 md:p-8 rounded-xl border shadow-sm print:p-0 print:shadow-none print:border-none">
+        <PrintCompanyHeader settings={companySettings} title="Phieu xuat kho" code={stockOut.code} />
+
         {/* Status Alert Banner */}
         <div className={`p-4 border rounded-lg flex items-center gap-3 print:hidden ${getStatusColor(stockOut.status)}`}>
           {getStatusIcon(stockOut.status)}
