@@ -9,9 +9,31 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url)
     const query = searchParams.get("q")
+    const suggest = searchParams.get("suggest") === "1"
     
     if (!query) {
       return NextResponse.json({ data: [] })
+    }
+
+    if (suggest) {
+      const products = await prisma.product.findMany({
+        where: {
+          isActive: true,
+          OR: [
+            { name: { contains: query } },
+            { sku: { contains: query } },
+            { barcode: { contains: query } },
+            { serialNumber: { contains: query } },
+          ]
+        },
+        include: {
+          category: { select: { id: true, name: true } }
+        },
+        orderBy: { updatedAt: "desc" },
+        take: 8
+      })
+
+      return NextResponse.json({ data: products })
     }
 
     const products = await prisma.product.findMany({

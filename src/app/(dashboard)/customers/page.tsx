@@ -153,12 +153,12 @@ export default function CustomersPage() {
         method: "DELETE",
       })
 
+      const json = await res.json()
       if (!res.ok) {
-        const json = await res.json()
         throw new Error(json.error || "Có lỗi xảy ra khi xóa")
       }
 
-      toast.success("Xóa khách hàng thành công")
+      toast.success(json.mode === "soft" ? "Đã ẩn khách hàng vì có dữ liệu liên quan" : "Xóa khách hàng thành công")
       setDeletingCustomer(null)
       fetchCustomers()
     } catch (error: any) {

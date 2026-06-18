@@ -91,10 +91,36 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    const product = await prisma.product.update({
+    const product = await prisma.product.findUnique({
       where: { id: resolvedParams.id },
-      data: { isActive: false }
+      include: {
+        _count: {
+          select: {
+            stockInItems: true,
+            stockOutItems: true,
+            inventoryTransactions: true,
+            warrantyRecords: true,
+          }
+        }
+      }
     })
+
+    if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+    const hasRelatedData =
+      product._count.stockInItems > 0 ||
+      product._count.stockOutItems > 0 ||
+      product._count.inventoryTransactions > 0 ||
+      product._count.warrantyRecords > 0
+
+    if (hasRelatedData) {
+      await prisma.product.update({
+        where: { id: resolvedParams.id },
+        data: { isActive: false }
+      })
+    } else {
+      await prisma.product.delete({ where: { id: resolvedParams.id } })
+    }
 
     await prisma.auditLog.create({
       data: {
@@ -106,7 +132,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       }
     })
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, mode: hasRelatedData ? "soft" : "hard" })
   } catch (error) {
     console.error("Product API error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

@@ -65,6 +65,7 @@ export default function StockOutDetailPage() {
   }
 
   const [isCancelling, setIsCancelling] = React.useState(false)
+  const [isApproving, setIsApproving] = React.useState(false)
   
   const [isEditing, setIsEditing] = React.useState(false)
   const [editData, setEditData] = React.useState({ poNumber: "", contractNumber: "", notes: "" })
@@ -135,6 +136,29 @@ export default function StockOutDetailPage() {
     }
   }
 
+  const handleApprove = async () => {
+    if (!window.confirm("Duyệt bản nháp này và ghi nhận xuất kho? Hệ thống sẽ trừ tồn kho và tạo bảo hành theo serial.")) return
+
+    try {
+      setIsApproving(true)
+      const res = await fetch(`/api/stock-out/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "APPROVE" })
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || "Không thể duyệt phiếu")
+
+      toast.success("Đã duyệt phiếu và ghi nhận xuất kho")
+      fetchStockOutDetails()
+    } catch (error: unknown) {
+      console.error(error)
+      toast.error(error instanceof Error ? error.message : "Không thể duyệt phiếu")
+    } finally {
+      setIsApproving(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -201,8 +225,18 @@ export default function StockOutDetailPage() {
         </Button>
         <PageHeader title="Chi tiết phiếu xuất kho" subtitle={`Mã phiếu: ${stockOut.code}`} />
         <div className="ml-auto flex items-center gap-2">
+          {stockOut.status === "DRAFT" && (
+            <Button
+              className="bg-green-600 text-white hover:bg-green-700"
+              onClick={handleApprove}
+              disabled={isApproving || isCancelling}
+            >
+              {isApproving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+              Duyệt phiếu
+            </Button>
+          )}
           {stockOut.status !== "CANCELLED" && (
-            <Button variant="destructive" onClick={handleCancel} disabled={isCancelling}>
+            <Button variant="destructive" onClick={handleCancel} disabled={isCancelling || isApproving}>
               {isCancelling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash className="mr-2 h-4 w-4" />}
               Hủy phiếu
             </Button>

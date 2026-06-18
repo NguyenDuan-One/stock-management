@@ -1,7 +1,7 @@
-"use client"
+﻿"use client"
 
 import * as React from "react"
-import { Plus, Search, Filter, MoreHorizontal, Edit, Trash, Barcode, Loader2 } from "lucide-react"
+import { Plus, Search, Filter, MoreHorizontal, Edit, Trash, Loader2, Printer, ScanBarcode } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,12 +14,22 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { PageHeader } from "@/components/ui/page-header"
 import { TablePagination } from "@/components/ui/table-pagination"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { BarcodeScannerInput } from "@/components/barcode/barcode-scanner-input"
 import { formatCurrency } from "@/lib/utils"
 import { toast } from "sonner"
+
+type PrintMode = "sku" | "serial"
 
 export default function ProductsPage() {
   const [products, setProducts] = React.useState<any[]>([])
@@ -32,7 +42,12 @@ export default function ProductsPage() {
   
   // Dialog state
   const [isOpen, setIsOpen] = React.useState(false)
+  const [editingProduct, setEditingProduct] = React.useState<any>(null)
+  const [deletingProduct, setDeletingProduct] = React.useState<any>(null)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const [isDeleting, setIsDeleting] = React.useState(false)
+  const [printingProduct, setPrintingProduct] = React.useState<any>(null)
+  const [printMode, setPrintMode] = React.useState<PrintMode>("sku")
 
   // Form state
   const [name, setName] = React.useState("")
@@ -80,6 +95,7 @@ export default function ProductsPage() {
   }
 
   const handleOpenAdd = () => {
+    setEditingProduct(null)
     setName("")
     setSku("")
     setBarcode("")
@@ -91,6 +107,69 @@ export default function ProductsPage() {
     setIsOpen(true)
   }
 
+  const handleOpenEdit = (product: any) => {
+    setEditingProduct(product)
+    setName(product.name || "")
+    setSku(product.sku || "")
+    setBarcode(product.barcode || "")
+    setCategoryId(product.categoryId || "")
+    setUnit(product.unit || "cái")
+    setCostPrice(product.costPrice ? String(product.costPrice) : "")
+    setSellingPrice(product.sellingPrice ? String(product.sellingPrice) : "")
+    setMinQuantity(String(product.minQuantity ?? 5))
+    setIsOpen(true)
+  }
+
+  const getErrorMessage = (error: unknown, fallback: string) => {
+    return error instanceof Error ? error.message : fallback
+  }
+
+  const getBarcodeBars = (value: string) => {
+    const source = value || "SKU"
+    let seed = 0
+    for (let i = 0; i < source.length; i += 1) seed += source.charCodeAt(i) * (i + 1)
+    return Array.from({ length: 64 }, (_, idx) => ((seed + idx * 17 + source.charCodeAt(idx % source.length)) % 5) + 1)
+  }
+
+  const getPrintCode = (product: any, mode: PrintMode) => {
+    console.log("Generating print code for product:", product, "mode:", mode)
+    return mode === "serial" ? String(product?.barcode || "").trim() : String(product?.sku || "").trim()
+  }
+
+  const openPrintPreview = (product: any, mode: PrintMode) => {
+    const code = getPrintCode(product, mode)
+    if (!code) {
+      toast.error(mode === "serial" ? "Sản phẩm chưa có số serial để in!" : "Sản phẩm chưa có SKU để in!")
+      return
+    }
+
+    setPrintingProduct(product)
+    setPrintMode(mode)
+  }
+
+  const getPdfUrl = () => {
+    if (!printingProduct) return
+    const code = getPrintCode(printingProduct, printMode)
+    if (!code) return
+
+    const params = new URLSearchParams({
+      mode: printMode,
+      code,
+      productName: printingProduct.name || "",
+      sku: printingProduct.sku || "",
+      widthMm: "60",
+      heightMm: "40",
+    })
+
+    return `/api/print/label/pdf?${params.toString()}`
+  }
+
+  const handleOpenPdf = () => {
+    const url = getPdfUrl()
+    if (!url) return
+    window.open(url, "_blank", "noopener,noreferrer")
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name || !sku) {
@@ -99,6 +178,7 @@ export default function ProductsPage() {
     }
 
     setIsSubmitting(true)
+    const isEdit = !!editingProduct
     try {
       const payload = {
         name,
@@ -111,8 +191,8 @@ export default function ProductsPage() {
         minQuantity
       }
 
-      const res = await fetch("/api/products", {
-        method: "POST",
+      const res = await fetch(isEdit ? `/api/products/${editingProduct.id}` : "/api/products", {
+        method: isEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       })
@@ -120,14 +200,33 @@ export default function ProductsPage() {
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || "Lỗi tạo sản phẩm")
 
-      toast.success("Thêm sản phẩm thành công")
+      toast.success(isEdit ? "Cập nhật sản phẩm thành công" : "Thêm sản phẩm thành công")
       setIsOpen(false)
       fetchProducts()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error)
-      toast.error(error.message)
+      toast.error(getErrorMessage(error, "Không thể lưu sản phẩm"))
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!deletingProduct) return
+    setIsDeleting(true)
+    try {
+      const res = await fetch(`/api/products/${deletingProduct.id}`, { method: "DELETE" })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || "Không thể xóa sản phẩm")
+
+      toast.success(json.mode === "soft" ? "Đã ẩn sản phẩm vì có dữ liệu liên quan" : "Xóa sản phẩm thành công")
+      setDeletingProduct(null)
+      fetchProducts()
+    } catch (error: unknown) {
+      console.error(error)
+      toast.error(getErrorMessage(error, "Không thể xóa sản phẩm"))
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -237,9 +336,35 @@ export default function ProductsPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-900">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-900">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={() => handleOpenEdit(product)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Sửa
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openPrintPreview(product, "serial")}>
+                            <ScanBarcode className="mr-2 h-4 w-4" />
+                            In theo serial
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openPrintPreview(product, "sku")}>
+                            <Printer className="mr-2 h-4 w-4" />
+                            In theo SKU
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-red-600 focus:text-red-700"
+                            onClick={() => setDeletingProduct(product)}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Xóa
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))
@@ -259,7 +384,7 @@ export default function ProductsPage() {
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Thêm sản phẩm mới</DialogTitle>
+            <DialogTitle>{editingProduct ? "Cập nhật sản phẩm" : "Thêm sản phẩm mới"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 py-2">
             <div className="space-y-2">
@@ -355,12 +480,77 @@ export default function ProductsPage() {
               </Button>
               <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Thêm sản phẩm
+                {editingProduct ? "Lưu thay đổi" : "Thêm sản phẩm"}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!printingProduct} onOpenChange={(open) => !open && setPrintingProduct(null)}>
+        <DialogContent className="sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>
+              Preview tem {printMode === "serial" ? "serial" : "SKU"} - 6x4 cm
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-2">
+            <div className="rounded-lg border bg-slate-50 p-4">
+              <div
+                className="grid grid-rows-[8mm_16mm_10mm] items-center overflow-hidden border border-slate-300 bg-white p-[3mm] text-center shadow-sm"
+                style={{ width: "6cm", height: "4cm" }}
+              >
+                <div className="w-full overflow-hidden">
+                  <div className="text-[8px] font-bold uppercase text-slate-600">
+                    {printMode === "serial" ? "Serial" : "SKU"}
+                  </div>
+                  <div className="truncate text-[9px] font-bold leading-tight text-slate-900">
+                    {printingProduct?.name}
+                  </div>
+                </div>
+                <div className="flex h-[16mm] w-full items-center justify-center overflow-hidden">
+                  {getBarcodeBars(getPrintCode(printingProduct, printMode)).map((width, idx) => (
+                    <span
+                      key={`${idx}-${width}`}
+                      className={idx % 2 === 0 ? "bg-slate-900" : "bg-transparent"}
+                      style={{ display: "inline-block", width: `${width}px`, height: "13mm" }}
+                    />
+                  ))}
+                </div>
+                <div className="w-full overflow-hidden">
+                  <div className="break-words font-mono text-[10px] font-bold leading-tight text-slate-900">
+                    {getPrintCode(printingProduct, printMode)}
+                  </div>
+                  <div className="truncate text-[7px] text-slate-600">
+                    SKU: {printingProduct?.sku || ""}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p className="text-center text-xs text-slate-500">
+              Label PDF size 6x4 cm. Bấm Xem PDF để mở file PDF.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setPrintingProduct(null)}>
+              Hủy
+            </Button>
+            <Button type="button" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleOpenPdf}>
+              <Printer className="mr-2 h-4 w-4" />
+              Xem PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        open={!!deletingProduct}
+        onClose={() => setDeletingProduct(null)}
+        onConfirm={handleDelete}
+        title="Xác nhận xóa sản phẩm"
+        description={`Bạn có chắc chắn muốn xóa sản phẩm "${deletingProduct?.name}"? Nếu sản phẩm đã phát sinh nhập/xuất, hệ thống sẽ ẩn sản phẩm để giữ lịch sử dữ liệu.`}
+        isLoading={isDeleting}
+      />
     </div>
   )
 }

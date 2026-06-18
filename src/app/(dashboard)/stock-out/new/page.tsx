@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Loader2, Plus, Trash2, Search, Barcode } from "lucide-react"
+import { ArrowLeft, Loader2, Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,6 +15,13 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
   Table,
   TableBody,
   TableCell,
@@ -25,7 +32,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PageHeader } from "@/components/ui/page-header"
 import { TablePagination } from "@/components/ui/table-pagination"
-import { BarcodeScannerInput } from "@/components/barcode/barcode-scanner-input"
+import { BarcodeScannerInput, type BarcodeSuggestion } from "@/components/barcode/barcode-scanner-input"
 import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
 
@@ -41,9 +48,26 @@ interface StockOutItem {
   warrantyStartDate: string
 }
 
+interface CustomerOption {
+  id: string
+  name: string
+  code?: string | null
+}
+
+interface ProductOption extends BarcodeSuggestion {
+  id: string
+  name: string
+  sku: string
+  quantity: number
+  minQuantity?: number | null
+  unit?: string | null
+  sellingPrice?: number | string | null
+  warrantyMonths?: number | null
+}
+
 export default function NewStockOutPage() {
   const router = useRouter()
-  const [customers, setCustomers] = React.useState<any[]>([])
+  const [customers, setCustomers] = React.useState<CustomerOption[]>([])
   const [isLoadingCustomers, setIsLoadingCustomers] = React.useState(true)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
 
@@ -53,10 +77,20 @@ export default function NewStockOutPage() {
   const [poNumber, setPoNumber] = React.useState("")
   const [contractNumber, setContractNumber] = React.useState("")
   const [notes, setNotes] = React.useState("")
+  const [isQuickCustomerOpen, setIsQuickCustomerOpen] = React.useState(false)
+  const [isQuickCustomerSubmitting, setIsQuickCustomerSubmitting] = React.useState(false)
+  const [quickCustomerName, setQuickCustomerName] = React.useState("")
+  const [quickCustomerCode, setQuickCustomerCode] = React.useState("")
+  const [quickCustomerContactName, setQuickCustomerContactName] = React.useState("")
+  const [quickCustomerPhone, setQuickCustomerPhone] = React.useState("")
+  const [quickCustomerEmail, setQuickCustomerEmail] = React.useState("")
+  const [quickCustomerAddress, setQuickCustomerAddress] = React.useState("")
 
   // Product Scanner / Selection states
-  const [scannedProduct, setScannedProduct] = React.useState<any>(null)
+  const [scannedProduct, setScannedProduct] = React.useState<ProductOption | null>(null)
   const [searchLoading, setSearchLoading] = React.useState(false)
+  const [productQuery, setProductQuery] = React.useState("")
+  const [productSuggestions, setProductSuggestions] = React.useState<ProductOption[]>([])
   
   // Adding item states
   const [addSerialNumber, setAddSerialNumber] = React.useState("")
@@ -64,6 +98,8 @@ export default function NewStockOutPage() {
   const [addUnitPrice, setAddUnitPrice] = React.useState(0)
   const [addWarranty, setAddWarranty] = React.useState(12)
   const [addWarrantyStart, setAddWarrantyStart] = React.useState(new Date().toISOString().split("T")[0])
+  const [serialLines, setSerialLines] = React.useState<string[]>([])
+  const [isCheckingSerial, setIsCheckingSerial] = React.useState(false)
 
   // Table items list
   const [items, setItems] = React.useState<StockOutItem[]>([])
@@ -76,10 +112,6 @@ export default function NewStockOutPage() {
   const snInputRef = React.useRef<HTMLInputElement>(null)
   const warrantyInputRef = React.useRef<HTMLInputElement>(null)
 
-  React.useEffect(() => {
-    fetchCustomers()
-  }, [])
-
   const fetchCustomers = async () => {
     try {
       const res = await fetch("/api/customers")
@@ -91,6 +123,54 @@ export default function NewStockOutPage() {
     } finally {
       setIsLoadingCustomers(false)
     }
+  }
+
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => {
+      fetchCustomers()
+    }, 0)
+
+    return () => window.clearTimeout(timer)
+  }, [])
+
+  React.useEffect(() => {
+    const query = productQuery.trim()
+    if (query.length < 2) {
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/products/search?q=${encodeURIComponent(query)}&suggest=1`)
+        const json = await res.json()
+        setProductSuggestions(json.data || [])
+      } catch (error) {
+        console.error(error)
+        setProductSuggestions([])
+      }
+    }, 250)
+
+    return () => clearTimeout(timer)
+  }, [productQuery])
+
+  const handleProductQueryChange = (value: string) => {
+    setProductQuery(value)
+    if (value.trim().length < 2) {
+      setProductSuggestions([])
+    }
+  }
+
+  const selectProductForStockOut = (product: ProductOption) => {
+    setScannedProduct(product)
+    setAddUnitPrice(Number(product.sellingPrice) || 0)
+    setAddWarranty(Number(product.warrantyMonths) || 12)
+    setAddQuantity(1)
+    setAddSerialNumber("")
+    setSerialLines([])
+    setAddWarrantyStart(new Date().toISOString().split("T")[0])
+    setProductSuggestions([])
+    setProductQuery("")
+    setTimeout(() => snInputRef.current?.focus(), 100)
   }
 
   // Handle barcode scanner input
@@ -111,15 +191,7 @@ export default function NewStockOutPage() {
         return
       }
 
-      setScannedProduct(product)
-      setAddUnitPrice(product.sellingPrice || 0)
-      setAddWarranty(product.warrantyMonths || 12)
-      setAddQuantity(1)
-      setAddSerialNumber("")
-      setAddWarrantyStart(new Date().toISOString().split("T")[0])
-      
-      // Auto-focus serial number input
-      setTimeout(() => snInputRef.current?.focus(), 100)
+      selectProductForStockOut(product)
     } catch (error) {
       console.error(error)
       toast.error("Lỗi khi tìm kiếm sản phẩm")
@@ -136,40 +208,163 @@ export default function NewStockOutPage() {
     return d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })
   }, [addWarrantyStart, addWarranty])
 
+  const getErrorMessage = (error: unknown, fallback: string) => {
+    return error instanceof Error ? error.message : fallback
+  }
+
+  const createQuickCustomerCode = () => {
+    return `KH${Date.now().toString().slice(-6)}`
+  }
+
+  const openQuickCustomer = () => {
+    setQuickCustomerName("")
+    setQuickCustomerCode(createQuickCustomerCode())
+    setQuickCustomerContactName("")
+    setQuickCustomerPhone("")
+    setQuickCustomerEmail("")
+    setQuickCustomerAddress("")
+    setIsQuickCustomerOpen(true)
+  }
+
+  const handleQuickCustomerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const name = quickCustomerName.trim()
+    const code = quickCustomerCode.trim()
+    if (!name || !code) {
+      toast.error("Vui lòng nhập tên khách hàng và mã KH")
+      return
+    }
+
+    setIsQuickCustomerSubmitting(true)
+    try {
+      const res = await fetch("/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          code,
+          contactName: quickCustomerContactName.trim() || undefined,
+          phone: quickCustomerPhone.trim() || undefined,
+          email: quickCustomerEmail.trim() || undefined,
+          address: quickCustomerAddress.trim() || undefined,
+        }),
+      })
+
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || "Không thể tạo khách hàng")
+
+      setCustomers((prev) => [json, ...prev.filter((customer) => customer.id !== json.id)])
+      setCustomerId(json.id)
+      setIsQuickCustomerOpen(false)
+      toast.success("Đã thêm khách hàng và chọn vào phiếu")
+    } catch (error: unknown) {
+      console.error(error)
+      toast.error(getErrorMessage(error, "Không thể thêm khách hàng"))
+    } finally {
+      setIsQuickCustomerSubmitting(false)
+    }
+  }
+
+  const createClientItemId = () => {
+    return globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+  }
+
   const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault()
     if (!scannedProduct) return
-    if (addQuantity <= 0) {
-      toast.error("Số lượng phải lớn hơn 0")
+    const alreadySelectedQuantity = items
+      .filter((item) => item.productId === scannedProduct.id)
+      .reduce((sum, item) => sum + item.quantity, 0)
+    const availableQuantity = Math.max(0, Number(scannedProduct.quantity || 0) - alreadySelectedQuantity)
+    const normalizedSerials = serialLines.map((serial) => serial.trim()).filter(Boolean)
+
+    if (normalizedSerials.length === 0) {
+      toast.error("Vui lòng nhập serial để xuất kho và quản lý bảo hành")
+      setTimeout(() => snInputRef.current?.focus(), 50)
       return
     }
 
-    // Check available stock
-    if (addQuantity > scannedProduct.quantity) {
-      toast.error(`Số lượng xuất vượt quá tồn kho. Còn lại: ${scannedProduct.quantity}`)
+    if (normalizedSerials.length > availableQuantity) {
+      toast.error(`Số serial vượt quá tồn kho còn lại: ${availableQuantity}`)
       return
     }
 
-    const newItem: StockOutItem = {
-      id: Math.random().toString(36).substring(7),
+    const newItems: StockOutItem[] = normalizedSerials.map((serialNumber) => ({
+      id: createClientItemId(),
       productId: scannedProduct.id,
       name: scannedProduct.name,
       sku: scannedProduct.sku,
-      serialNumber: addSerialNumber,
-      quantity: addQuantity,
+      serialNumber,
+      quantity: 1,
       unitPrice: addUnitPrice,
       warrantyMonths: addWarranty,
       warrantyStartDate: addWarrantyStart,
-    }
+    }))
 
-    setItems((prev) => [...prev, newItem])
-    toast.success(`Đã thêm ${scannedProduct.name}`)
-    
-    // Reset scanner state
+    setItems((prev) => [...prev, ...newItems])
+    toast.success(`Đã thêm ${newItems.length} serial`)
     setScannedProduct(null)
     setAddSerialNumber("")
+    setSerialLines([])
     setAddQuantity(1)
     setAddUnitPrice(0)
+    return
+  }
+
+  const handleAddSerialLine = async () => {
+    if (!scannedProduct) return
+    if (isCheckingSerial) return
+
+    const serial = addSerialNumber.trim()
+    if (!serial) {
+      toast.error("Vui lòng nhập số serial")
+      return
+    }
+    if (serialLines.some((item) => item.toLowerCase() === serial.toLowerCase())) {
+      toast.error("Serial này đã có trong danh sách")
+      return
+    }
+    if (items.some((item) => item.serialNumber?.toLowerCase() === serial.toLowerCase())) {
+      toast.error("Serial này đã có trong phiếu")
+      return
+    }
+
+    const alreadySelectedQuantity = items
+      .filter((item) => item.productId === scannedProduct.id)
+      .reduce((sum, item) => sum + item.quantity, 0)
+    const availableQuantity = Math.max(0, Number(scannedProduct.quantity || 0) - alreadySelectedQuantity)
+
+    if (serialLines.length + 1 > availableQuantity) {
+      toast.error(`Số serial vượt quá tồn kho còn lại: ${availableQuantity}`)
+      return
+    }
+
+    setIsCheckingSerial(true)
+    try {
+      const res = await fetch(
+        `/api/products/serial-check?productId=${encodeURIComponent(scannedProduct.id)}&serial=${encodeURIComponent(serial)}`
+      )
+      const json = await res.json()
+      if (!res.ok || !json.available) {
+        toast.error(json.error || "Serial không hợp lệ hoặc đã xuất kho")
+        return
+      }
+
+      setSerialLines((prev) => [...prev, serial])
+      setAddSerialNumber("")
+      setAddQuantity(serialLines.length + 1)
+      setTimeout(() => snInputRef.current?.focus(), 50)
+    } catch (error) {
+      console.error(error)
+      toast.error("Không thể kiểm tra serial")
+    } finally {
+      setIsCheckingSerial(false)
+    }
+  }
+
+  const handleRemoveSerialLine = (serial: string) => {
+    setSerialLines((prev) => prev.filter((item) => item !== serial))
+    setAddQuantity((prev) => Math.max(1, prev - 1))
   }
 
   const handleRemoveItem = (id: string) => {
@@ -181,7 +376,10 @@ export default function NewStockOutPage() {
 
   React.useEffect(() => {
     const maxPage = Math.max(1, Math.ceil(items.length / itemLimit))
-    if (itemPage > maxPage) setItemPage(maxPage)
+    if (itemPage <= maxPage) return
+
+    const timer = window.setTimeout(() => setItemPage(maxPage), 0)
+    return () => window.clearTimeout(timer)
   }, [items.length, itemPage])
 
   const handleSubmit = async (status: "CONFIRMED" | "DRAFT") => {
@@ -191,6 +389,11 @@ export default function NewStockOutPage() {
     }
     if (items.length === 0) {
       toast.error("Vui lòng thêm ít nhất một sản phẩm")
+      return
+    }
+
+    if (items.some((item) => !item.serialNumber.trim())) {
+      toast.error("Mỗi dòng xuất kho phải có serial để quản lý bảo hành")
       return
     }
 
@@ -224,9 +427,9 @@ export default function NewStockOutPage() {
 
       toast.success(status === "CONFIRMED" ? "Đã xuất kho thành công" : "Lưu bản nháp thành công")
       router.push("/stock-out")
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error)
-      toast.error(error.message || "Không thể lưu phiếu xuất kho")
+      toast.error(getErrorMessage(error, "Không thể lưu phiếu xuất kho"))
     } finally {
       setIsSubmitting(false)
     }
@@ -256,6 +459,16 @@ export default function NewStockOutPage() {
             <CardContent className="space-y-4 pt-6">
               <div className="space-y-2">
                 <Label>Khách hàng *</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-fit gap-1.5 text-xs float-end"
+                  onClick={openQuickCustomer}
+                >
+                  <Plus className=" h-3.5 w-3.5" />
+                  Thêm khách hàng
+                </Button>
                 {isLoadingCustomers ? (
                   <Input disabled placeholder="Đang tải danh sách khách hàng..." />
                 ) : (
@@ -330,7 +543,14 @@ export default function NewStockOutPage() {
               {/* Barcode scanner */}
               <div className="space-y-2">
                 <Label>Quét mã vạch hoặc nhập mã SKU sản phẩm</Label>
-                <BarcodeScannerInput onScan={handleBarcodeScan} isLoading={searchLoading} />
+                <BarcodeScannerInput
+                  onScan={handleBarcodeScan}
+                  isLoading={searchLoading}
+                  suggestions={productSuggestions}
+                  onQueryChange={handleProductQueryChange}
+                  onSuggestionSelect={(item) => selectProductForStockOut(item as ProductOption)}
+                  emptyText="Không có sản phẩm khớp"
+                />
               </div>
 
               {/* Scanned product info card & options to add */}
@@ -347,7 +567,7 @@ export default function NewStockOutPage() {
                     </div>
                     <div className="text-right">
                       <span className="text-blue-200 text-xs block">Tồn kho</span>
-                      <span className={`font-bold text-base ${scannedProduct.quantity <= scannedProduct.minQuantity ? "text-red-300" : "text-green-300"}`}>
+                      <span className={`font-bold text-base ${scannedProduct.quantity <= (scannedProduct.minQuantity ?? 0) ? "text-red-300" : "text-green-300"}`}>
                         {scannedProduct.quantity} {scannedProduct.unit || "cái"}
                       </span>
                     </div>
@@ -358,20 +578,39 @@ export default function NewStockOutPage() {
                     <div className="grid grid-cols-3 gap-3">
                       <div className="space-y-1.5">
                         <Label htmlFor="item-sn" className="text-xs font-semibold text-slate-600">
-                          Số Serial (S/N)
+                          Quét serial (barcode/S/N) *
                         </Label>
                         <Input
                           id="item-sn"
                           ref={snInputRef}
-                          placeholder="Không bắt buộc"
+                          placeholder="Quét/nhập serial rồi Enter"
                           value={addSerialNumber}
                           onChange={(e) => setAddSerialNumber(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault()
+                              handleAddSerialLine()
+                            }
+                          }}
                           className="h-9 text-sm"
                         />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-8 w-full gap-1.5 text-xs"
+                          onClick={handleAddSerialLine}
+                          disabled={isCheckingSerial}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          Thêm serial
+                        </Button>
+                        <p className="text-[10px] text-slate-500">
+                          Máy quét barcode sẽ tự thêm serial khi gửi phím Enter.
+                        </p>
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="item-qty" className="text-xs font-semibold text-slate-600">
-                          Số lượng xuất *
+                          SL theo serial
                         </Label>
                         <Input
                           id="item-qty"
@@ -379,11 +618,13 @@ export default function NewStockOutPage() {
                           min="1"
                           max={scannedProduct.quantity}
                           ref={qtyInputRef}
-                          value={addQuantity}
-                          onChange={(e) => setAddQuantity(parseInt(e.target.value) || 1)}
+                          value={serialLines.length || addQuantity}
+                          readOnly
+                          disabled
                           className="h-9 text-sm font-semibold"
                           required
                         />
+                        <p className="text-[10px] text-slate-500">Mỗi serial được tính SL 1.</p>
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="item-price" className="text-xs font-semibold text-slate-600">
@@ -401,6 +642,35 @@ export default function NewStockOutPage() {
                         />
                       </div>
                     </div>
+
+                    {serialLines.length > 0 && (
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                        <div className="mb-2 flex items-center justify-between gap-3">
+                          <span className="text-xs font-semibold text-slate-700">
+                            Serial đã nhập ({serialLines.length})
+                          </span>
+                          <span className="text-xs text-slate-500">Mỗi serial = SL 1</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {serialLines.map((serial) => (
+                            <span
+                              key={serial}
+                              className="inline-flex min-h-8 items-center gap-2 rounded-md border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-mono text-blue-800"
+                            >
+                              {serial}
+                              <button
+                                type="button"
+                                className="rounded text-blue-500 hover:text-red-600 focus:outline-none"
+                                onClick={() => handleRemoveSerialLine(serial)}
+                                aria-label={`Xóa serial ${serial}`}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Row 2: WARRANTY — highlighted section */}
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-3">
@@ -474,14 +744,19 @@ export default function NewStockOutPage() {
                       <div className="text-sm text-slate-600">
                         Thành tiền:{" "}
                         <span className="font-bold text-blue-700">
-                          {formatCurrency(addQuantity * addUnitPrice)}
+                          {formatCurrency((serialLines.length || addQuantity) * addUnitPrice)}
                         </span>
                       </div>
                       <div className="flex gap-2">
                         <Button
                           type="button"
                           variant="ghost"
-                          onClick={() => setScannedProduct(null)}
+                          onClick={() => {
+                            setScannedProduct(null)
+                            setAddSerialNumber("")
+                            setSerialLines([])
+                            setAddQuantity(1)
+                          }}
                           className="text-slate-500 hover:text-slate-700 h-9 px-3 text-sm"
                         >
                           Hủy
@@ -613,6 +888,86 @@ export default function NewStockOutPage() {
           Xác nhận xuất kho
         </Button>
       </div>
+
+      <Dialog open={isQuickCustomerOpen} onOpenChange={setIsQuickCustomerOpen}>
+        <DialogContent className="sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>Thêm nhanh khách hàng</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleQuickCustomerSubmit} className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="quick-customer-name">Tên khách hàng *</Label>
+                <Input
+                  id="quick-customer-name"
+                  value={quickCustomerName}
+                  onChange={(e) => setQuickCustomerName(e.target.value)}
+                  placeholder="Nhập tên khách hàng"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="quick-customer-code">Mã KH *</Label>
+                <Input
+                  id="quick-customer-code"
+                  value={quickCustomerCode}
+                  onChange={(e) => setQuickCustomerCode(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="quick-customer-contact">Người liên hệ</Label>
+                <Input
+                  id="quick-customer-contact"
+                  value={quickCustomerContactName}
+                  onChange={(e) => setQuickCustomerContactName(e.target.value)}
+                  placeholder="Tên người liên hệ"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="quick-customer-phone">Số điện thoại</Label>
+                <Input
+                  id="quick-customer-phone"
+                  value={quickCustomerPhone}
+                  onChange={(e) => setQuickCustomerPhone(e.target.value)}
+                  placeholder="Số điện thoại"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="quick-customer-email">Email</Label>
+              <Input
+                id="quick-customer-email"
+                type="email"
+                value={quickCustomerEmail}
+                onChange={(e) => setQuickCustomerEmail(e.target.value)}
+                placeholder="email@example.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="quick-customer-address">Địa chỉ</Label>
+              <Textarea
+                id="quick-customer-address"
+                value={quickCustomerAddress}
+                onChange={(e) => setQuickCustomerAddress(e.target.value)}
+                rows={2}
+                placeholder="Địa chỉ khách hàng"
+              />
+            </div>
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" onClick={() => setIsQuickCustomerOpen(false)} disabled={isQuickCustomerSubmitting}>
+                Hủy
+              </Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white" disabled={isQuickCustomerSubmitting}>
+                {isQuickCustomerSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Thêm và chọn
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -74,11 +74,21 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const session = await auth()
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-    // Soft delete
-    const category = await prisma.productCategory.update({
+    const category = await prisma.productCategory.findUnique({
       where: { id: resolvedParams.id },
-      data: { isActive: false }
+      include: { _count: { select: { products: true } } }
     })
+
+    if (!category) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+    if (category._count.products > 0) {
+      await prisma.productCategory.update({
+        where: { id: resolvedParams.id },
+        data: { isActive: false }
+      })
+    } else {
+      await prisma.productCategory.delete({ where: { id: resolvedParams.id } })
+    }
 
     await prisma.auditLog.create({
       data: {
@@ -90,7 +100,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       }
     })
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, mode: category._count.products > 0 ? "soft" : "hard" })
   } catch (error) {
     console.error("Category API error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

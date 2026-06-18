@@ -153,12 +153,12 @@ export default function SuppliersPage() {
         method: "DELETE",
       })
 
+      const json = await res.json()
       if (!res.ok) {
-        const json = await res.json()
         throw new Error(json.error || "Có lỗi xảy ra khi xóa")
       }
 
-      toast.success("Xóa nhà cung cấp thành công")
+      toast.success(json.mode === "soft" ? "Đã ẩn nhà cung cấp vì có phiếu nhập liên quan" : "Xóa nhà cung cấp thành công")
       setDeletingSupplier(null)
       fetchSuppliers()
     } catch (error: any) {

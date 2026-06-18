@@ -123,12 +123,12 @@ export default function CategoriesPage() {
         method: "DELETE",
       })
 
+      const json = await res.json()
       if (!res.ok) {
-        const json = await res.json()
         throw new Error(json.error || "Có lỗi xảy ra khi xóa danh mục")
       }
 
-      toast.success("Xóa danh mục thành công")
+      toast.success(json.mode === "soft" ? "Đã ẩn danh mục vì có sản phẩm liên quan" : "Xóa danh mục thành công")
       setDeletingCategory(null)
       fetchCategories()
     } catch (error: any) {
