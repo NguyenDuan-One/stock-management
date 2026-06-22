@@ -67,8 +67,9 @@ export default function StockInListPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case "CONFIRMED":
       case "COMPLETED":
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-none">Đã hoàn thành</Badge>
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-none">Hoàn thành</Badge>
       case "DRAFT":
         return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 border-none">Bản nháp</Badge>
       case "CANCELLED":
@@ -120,7 +121,7 @@ export default function StockInListPage() {
             <SelectContent>
               <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
               <SelectItem value="DRAFT">Bản nháp</SelectItem>
-              <SelectItem value="COMPLETED">Đã hoàn thành</SelectItem>
+              <SelectItem value="COMPLETED">Hoàn thành</SelectItem>
               <SelectItem value="CANCELLED">Đã hủy</SelectItem>
             </SelectContent>
           </Select>

@@ -76,10 +76,21 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     const category = await prisma.productCategory.findUnique({
       where: { id: resolvedParams.id },
-      include: { _count: { select: { products: true } } }
+      include: {
+        _count: { select: { products: true } },
+        products: { select: { quantity: true } },
+      }
     })
 
     if (!category) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+    const totalQuantity = category.products.reduce((sum, product) => sum + product.quantity, 0)
+    if (totalQuantity > 0) {
+      return NextResponse.json(
+        { error: `Không thể xóa danh mục vì còn tồn kho ${totalQuantity}. Chỉ xóa khi tồn kho = 0 và không còn serial/lot active.` },
+        { status: 400 }
+      )
+    }
 
     if (category._count.products > 0) {
       await prisma.productCategory.update({

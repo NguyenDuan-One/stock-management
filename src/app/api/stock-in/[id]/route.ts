@@ -105,9 +105,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
           const nextQuantity = product.quantity - item.quantity
           const currentCostPrice = Number(product.costPrice || 0)
           const itemTotalPrice = Number(item.totalPrice)
-          const nextCostPrice = nextQuantity > 0
-            ? Math.max(((product.quantity * currentCostPrice) - itemTotalPrice) / nextQuantity, 0)
-            : null
+          const shouldUpdateAverageCost = product.trackingMethod === "AverageCost"
+          const nextCostPrice = shouldUpdateAverageCost
+            ? (nextQuantity > 0
+                ? Math.max(((product.quantity * currentCostPrice) - itemTotalPrice) / nextQuantity, 0)
+                : null)
+            : product.costPrice
 
           await tx.product.update({
             where: { id: item.productId },

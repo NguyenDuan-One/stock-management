@@ -78,9 +78,9 @@ export default function StockOutDetailPage() {
     if (itemPage > maxPage) setItemPage(maxPage)
   }, [stockOut?.items?.length, itemPage])
 
-  const handlePrint = () => {
-    window.print()
-  }
+    const handlePrint = () => {
+      window.print()
+    }
 
   const openEdit = () => {
     if (stockOut?.status === "CANCELLED") {
@@ -250,6 +250,7 @@ export default function StockOutDetailPage() {
 
       {/* Printable Area */}
       <div className="print-slip space-y-6 bg-white p-6 md:p-8 rounded-xl border shadow-sm print:p-0 print:shadow-none print:border-none">
+        <div className="print-page-code hidden print:block">Phiếu xuất kho: {stockOut.code}</div>
         <PrintCompanyHeader settings={companySettings} title="Phieu xuat kho" code={stockOut.code} />
 
         {/* Status Alert Banner */}
@@ -312,7 +313,7 @@ export default function StockOutDetailPage() {
         {/* Items Table */}
         <div className="space-y-4 print:space-y-2">
           <h3 className="font-bold text-slate-800 text-sm tracking-wider uppercase print:text-xs">Danh sách sản phẩm xuất</h3>
-          <div className="rounded-md border overflow-hidden print:rounded-none print:border-0">
+          <div className="rounded-md border overflow-hidden print:hidden">
             <Table>
               <TableHeader className="bg-slate-50">
                 <TableRow>
@@ -351,12 +352,51 @@ export default function StockOutDetailPage() {
               </TableBody>
             </Table>
           </div>
+          <div className="hidden print:block">
+            <Table>
+              <TableHeader className="bg-slate-50">
+                <TableRow>
+                  <TableHead className="w-[80px]">STT</TableHead>
+                  <TableHead>Tên sản phẩm</TableHead>
+                  <TableHead>Mã SKU</TableHead>
+                  <TableHead>Số Serial (S/N)</TableHead>
+                  <TableHead className="text-right">Số lượng</TableHead>
+                  <TableHead className="text-right">Đơn giá bán</TableHead>
+                  <TableHead className="text-right">Thành tiền</TableHead>
+                  <TableHead className="text-center w-[120px]">Thời hạn BH</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {detailItems.map((item: any, idx: number) => (
+                  <TableRow key={`print-${item.id || idx}`}>
+                    <TableCell className="font-medium">{idx + 1}</TableCell>
+                    <TableCell className="font-semibold text-slate-800">{item.product?.name}</TableCell>
+                    <TableCell className="font-mono text-xs">{item.product?.sku}</TableCell>
+                    <TableCell className="font-mono font-medium text-slate-600">{item.serialNumber || "-"}</TableCell>
+                    <TableCell className="text-right font-medium">{item.quantity} {item.product?.unit || "cái"}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
+                    <TableCell className="text-right font-bold text-slate-800">
+                      {formatCurrency(item.quantity * item.unitPrice)}
+                    </TableCell>
+                    <TableCell className="text-center text-xs">
+                      {item.warrantyMonths ? `${item.warrantyMonths} tháng` : "Không bảo hành"}
+                      {item.warrantyStartDate && (
+                        <div className="text-[10px] text-slate-400 mt-0.5">
+                          từ {formatDate(item.warrantyStartDate)}
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
           <div className="print:hidden">
             <TablePagination
               page={itemPage}
               limit={itemLimit}
               total={detailItems.length}
-              itemLabel="s?n ph?m"
+              itemLabel="sản phẩm"
               onPageChange={setItemPage}
             />
           </div>

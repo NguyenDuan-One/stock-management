@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { StockInStatus } from "@prisma/client"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
@@ -11,10 +12,13 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1")
     const limit = parseInt(searchParams.get("limit") || "10")
     const search = searchParams.get("search") || ""
+    const rawStatus = searchParams.get("status") || ""
+    const status = rawStatus === "COMPLETED" ? StockInStatus.CONFIRMED : rawStatus
     
     const skip = (page - 1) * limit
 
     const whereClause: any = {
+      ...(status && Object.values(StockInStatus).includes(status as StockInStatus) && { status }),
       ...(search && {
         OR: [
           { code: { contains: search } },
@@ -120,11 +124,14 @@ export async function POST(req: NextRequest) {
           const currentQuantity = product.quantity
           const currentCostPrice = Number(product.costPrice || 0)
           const nextQuantity = currentQuantity + itemQuantity
-          const nextCostPrice = nextQuantity > 0
-            ? ((currentQuantity * currentCostPrice) + (itemQuantity * itemUnitPrice)) / nextQuantity
-            : itemUnitPrice
+          const shouldUpdateAverageCost = product.trackingMethod === "AverageCost"
+          const nextCostPrice = shouldUpdateAverageCost
+            ? (nextQuantity > 0
+                ? ((currentQuantity * currentCostPrice) + (itemQuantity * itemUnitPrice)) / nextQuantity
+                : itemUnitPrice)
+            : product.costPrice
 
-          // Increment quantity and update moving average cost price
+          // Increment quantity; only AverageCost products update moving average cost price here.
           await tx.product.update({
             where: { id: item.productId },
             data: {

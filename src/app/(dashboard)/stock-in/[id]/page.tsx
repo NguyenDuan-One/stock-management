@@ -161,7 +161,7 @@ export default function StockInDetailPage() {
     switch (status) {
       case "CONFIRMED":
       case "COMPLETED":
-        return "Đã hoàn thành"
+        return "Hoàn thành"
       case "DRAFT":
         return "Bản nháp"
       case "CANCELLED":
@@ -216,6 +216,7 @@ export default function StockInDetailPage() {
 
       {/* Printable Area */}
       <div className="print-slip space-y-6 bg-white p-6 md:p-8 rounded-xl border shadow-sm print:p-0 print:shadow-none print:border-none">
+        <div className="print-page-code hidden print:block">Phiếu nhập kho: {stockIn.code}</div>
         <PrintCompanyHeader settings={companySettings} title="Phieu nhap kho" code={stockIn.code} />
 
         {/* Status Alert Banner */}
@@ -278,7 +279,7 @@ export default function StockInDetailPage() {
         {/* Items Table */}
         <div className="space-y-4 print:space-y-2">
           <h3 className="font-bold text-slate-800 text-sm tracking-wider uppercase print:text-xs">Danh sách sản phẩm nhập</h3>
-          <div className="rounded-md border overflow-hidden print:rounded-none print:border-0">
+          <div className="rounded-md border overflow-hidden print:hidden">
             <Table>
               <TableHeader className="bg-slate-50">
                 <TableRow>
@@ -310,12 +311,44 @@ export default function StockInDetailPage() {
               </TableBody>
             </Table>
           </div>
+          <div className="hidden print:block">
+            <Table>
+              <TableHeader className="bg-slate-50">
+                <TableRow>
+                  <TableHead className="w-[80px]">STT</TableHead>
+                  <TableHead>Tên sản phẩm</TableHead>
+                  <TableHead>Mã SKU</TableHead>
+                  <TableHead>Số Serial (S/N)</TableHead>
+                  <TableHead className="text-right">Số lượng</TableHead>
+                  <TableHead className="text-right">Đơn giá</TableHead>
+                  <TableHead className="text-right">Thành tiền</TableHead>
+                  <TableHead className="text-center w-[100px]">BH (Tháng)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {detailItems.map((item: any, idx: number) => (
+                  <TableRow key={`print-${item.id || idx}`}>
+                    <TableCell className="font-medium">{idx + 1}</TableCell>
+                    <TableCell className="font-semibold text-slate-800">{item.product?.name}</TableCell>
+                    <TableCell className="font-mono text-xs">{item.product?.sku}</TableCell>
+                    <TableCell className="font-mono font-medium text-slate-600">{item.serialNumber || "-"}</TableCell>
+                    <TableCell className="text-right font-medium">{item.quantity} {item.product?.unit || "cái"}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
+                    <TableCell className="text-right font-bold text-slate-800">
+                      {formatCurrency(item.quantity * item.unitPrice)}
+                    </TableCell>
+                    <TableCell className="text-center">{item.warrantyMonths || 0} tháng</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
           <div className="print:hidden">
             <TablePagination
               page={itemPage}
               limit={itemLimit}
               total={detailItems.length}
-              itemLabel="s?n ph?m"
+              itemLabel="sản phẩm"
               onPageChange={setItemPage}
             />
           </div>

@@ -35,6 +35,7 @@ import { TablePagination } from "@/components/ui/table-pagination"
 import { BarcodeScannerInput, type BarcodeSuggestion } from "@/components/barcode/barcode-scanner-input"
 import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
+import { isAverageCostMethod } from "@/lib/inventory-cost"
 
 interface StockOutItem {
   id: string // temporary client-side ID
@@ -54,6 +55,11 @@ interface CustomerOption {
   code?: string | null
 }
 
+interface CategoryOption {
+  id: string
+  name: string
+}
+
 interface ProductOption extends BarcodeSuggestion {
   id: string
   name: string
@@ -68,6 +74,7 @@ interface ProductOption extends BarcodeSuggestion {
 export default function NewStockOutPage() {
   const router = useRouter()
   const [customers, setCustomers] = React.useState<CustomerOption[]>([])
+  const [categories, setCategories] = React.useState<CategoryOption[]>([])
   const [isLoadingCustomers, setIsLoadingCustomers] = React.useState(true)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
 
@@ -85,6 +92,32 @@ export default function NewStockOutPage() {
   const [quickCustomerPhone, setQuickCustomerPhone] = React.useState("")
   const [quickCustomerEmail, setQuickCustomerEmail] = React.useState("")
   const [quickCustomerAddress, setQuickCustomerAddress] = React.useState("")
+  const [isQuickProductOpen, setIsQuickProductOpen] = React.useState(false)
+  const [isQuickProductSaving, setIsQuickProductSaving] = React.useState(false)
+  const [quickProductName, setQuickProductName] = React.useState("")
+  const [quickProductSku, setQuickProductSku] = React.useState("")
+  const [quickProductBarcode, setQuickProductBarcode] = React.useState("")
+  const [quickProductCategoryId, setQuickProductCategoryId] = React.useState("")
+  const [quickProductUnit, setQuickProductUnit] = React.useState("cái")
+  const [quickProductCostPrice, setQuickProductCostPrice] = React.useState("")
+  const [quickProductSellingPrice, setQuickProductSellingPrice] = React.useState("")
+  const [quickProductMinQuantity, setQuickProductMinQuantity] = React.useState("0")
+  const [quickProductTrackingMethod, setQuickProductTrackingMethod] = React.useState("AverageCost")
+  const quickProductUsesAverageCost = isAverageCostMethod(quickProductTrackingMethod)
+
+  const trackingOptions = [
+    { value: "None", label: "Không quản lý tồn", hint: "Không tính giá vốn tự động, chỉ dùng giá nhập/bán thủ công." },
+    { value: "AverageCost", label: "Bình quân gia quyền", hint: "Giá vốn = tổng giá trị tồn và nhập mới / tổng số lượng." },
+    { value: "FIFO", label: "FIFO", hint: "Xuất trước theo lô nhập trước, giá vốn lấy theo thứ tự nhập kho." },
+    { value: "SerialNumber", label: "Theo serial", hint: "Mỗi serial là một đơn vị tồn, phù hợp bảo hành và thiết bị." },
+    { value: "LotNumber", label: "Theo lot/lô", hint: "Quản lý tồn theo lô, hạn dùng hoặc lô sản xuất." },
+  ]
+
+  const getTrackingOption = (value: string) => trackingOptions.find((option) => option.value === value) || trackingOptions[1]
+
+  React.useEffect(() => {
+    if (!quickProductUsesAverageCost) setQuickProductCostPrice("")
+  }, [quickProductUsesAverageCost])
 
   // Product Scanner / Selection states
   const [scannedProduct, setScannedProduct] = React.useState<ProductOption | null>(null)
@@ -125,9 +158,20 @@ export default function NewStockOutPage() {
     }
   }
 
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch("/api/categories")
+      const json = await res.json()
+      setCategories(Array.isArray(json) ? json : json.data || [])
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
   React.useEffect(() => {
     const timer = window.setTimeout(() => {
       fetchCustomers()
+      fetchCategories()
     }, 0)
 
     return () => window.clearTimeout(timer)
@@ -226,6 +270,22 @@ export default function NewStockOutPage() {
     setIsQuickCustomerOpen(true)
   }
 
+  const openQuickProduct = (rawValue = "") => {
+    const value = rawValue.trim()
+    const looksLikeBarcode = /^\d{8,}$/.test(value)
+
+    setQuickProductName("")
+    setQuickProductSku(looksLikeBarcode ? "" : value)
+    setQuickProductBarcode(looksLikeBarcode ? value : "")
+    setQuickProductCategoryId("")
+    setQuickProductUnit("cái")
+    setQuickProductCostPrice("")
+    setQuickProductSellingPrice("")
+    setQuickProductMinQuantity("0")
+    setQuickProductTrackingMethod("AverageCost")
+    setIsQuickProductOpen(true)
+  }
+
   const handleQuickCustomerSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const name = quickCustomerName.trim()
@@ -262,6 +322,45 @@ export default function NewStockOutPage() {
       toast.error(getErrorMessage(error, "Không thể thêm khách hàng"))
     } finally {
       setIsQuickCustomerSubmitting(false)
+    }
+  }
+
+  const handleQuickProductSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!quickProductName.trim() || !quickProductSku.trim()) {
+      toast.error("Vui lòng nhập tên sản phẩm và SKU")
+      return
+    }
+
+    setIsQuickProductSaving(true)
+    try {
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: quickProductName.trim(),
+          sku: quickProductSku.trim(),
+          barcode: quickProductBarcode.trim(),
+          categoryId: quickProductCategoryId || undefined,
+          unit: quickProductUnit.trim() || "cái",
+          costPrice: quickProductUsesAverageCost ? quickProductCostPrice : "",
+          sellingPrice: quickProductSellingPrice,
+          minQuantity: quickProductMinQuantity,
+          trackingMethod: quickProductTrackingMethod,
+        }),
+      })
+
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || "Không thể tạo sản phẩm")
+
+      setIsQuickProductOpen(false)
+      selectProductForStockOut(json)
+      toast.success("Đã thêm nhanh sản phẩm. Sản phẩm mới chưa có tồn kho, cần nhập kho trước khi xuất.")
+    } catch (error: unknown) {
+      console.error(error)
+      toast.error(getErrorMessage(error, "Không thể tạo sản phẩm"))
+    } finally {
+      setIsQuickProductSaving(false)
     }
   }
 
@@ -549,6 +648,8 @@ export default function NewStockOutPage() {
                   suggestions={productSuggestions}
                   onQueryChange={handleProductQueryChange}
                   onSuggestionSelect={(item) => selectProductForStockOut(item as ProductOption)}
+                  onAddNew={openQuickProduct}
+                  addNewLabel="Thêm SKU mới"
                   emptyText="Không có sản phẩm khớp"
                 />
               </div>
@@ -888,6 +989,132 @@ export default function NewStockOutPage() {
           Xác nhận xuất kho
         </Button>
       </div>
+
+      <Dialog open={isQuickProductOpen} onOpenChange={setIsQuickProductOpen}>
+        <DialogContent className="sm:max-w-[640px]">
+          <DialogHeader>
+            <DialogTitle>Thêm nhanh sản phẩm</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleQuickProductSubmit} className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="quick-product-name">Tên sản phẩm *</Label>
+              <Input
+                id="quick-product-name"
+                value={quickProductName}
+                onChange={(e) => setQuickProductName(e.target.value)}
+                placeholder="Nhập tên sản phẩm"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="quick-product-sku">Mã SKU *</Label>
+                <Input
+                  id="quick-product-sku"
+                  value={quickProductSku}
+                  onChange={(e) => setQuickProductSku(e.target.value)}
+                  placeholder="VD: SKU-001"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="quick-product-barcode">Barcode</Label>
+                <Input
+                  id="quick-product-barcode"
+                  value={quickProductBarcode}
+                  onChange={(e) => setQuickProductBarcode(e.target.value)}
+                  placeholder="Quét hoặc nhập mã vạch"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Danh mục</Label>
+                <Select value={quickProductCategoryId} onValueChange={setQuickProductCategoryId}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Chọn danh mục" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="quick-product-unit">Đơn vị tính</Label>
+                <Input
+                  id="quick-product-unit"
+                  value={quickProductUnit}
+                  onChange={(e) => setQuickProductUnit(e.target.value)}
+                  placeholder="VD: cái, chiếc, hộp"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="quick-product-tracking">Phương pháp tính giá tồn *</Label>
+              <Select value={quickProductTrackingMethod} onValueChange={setQuickProductTrackingMethod}>
+                <SelectTrigger id="quick-product-tracking" className="bg-white">
+                  <SelectValue placeholder="Chọn phương pháp tính" />
+                </SelectTrigger>
+                <SelectContent>
+                  {trackingOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs leading-5 text-slate-500">{getTrackingOption(quickProductTrackingMethod).hint}</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="quick-product-cost">Giá vốn bình quân</Label>
+                <Input
+                  id="quick-product-cost"
+                  type="number"
+                  min="0"
+                  value={quickProductCostPrice}
+                  onChange={(e) => setQuickProductCostPrice(e.target.value)}
+                  disabled={!quickProductUsesAverageCost}
+                  placeholder={quickProductUsesAverageCost ? "Nhập giá vốn bình quân" : "Để trống"}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="quick-product-sell">Giá bán</Label>
+                <Input
+                  id="quick-product-sell"
+                  type="number"
+                  min="0"
+                  value={quickProductSellingPrice}
+                  onChange={(e) => setQuickProductSellingPrice(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="quick-product-min">Tồn tối thiểu</Label>
+                <Input
+                  id="quick-product-min"
+                  type="number"
+                  min="0"
+                  value={quickProductMinQuantity}
+                  onChange={(e) => setQuickProductMinQuantity(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" onClick={() => setIsQuickProductOpen(false)}>
+                Hủy
+              </Button>
+              <Button type="submit" disabled={isQuickProductSaving} className="bg-blue-600 hover:bg-blue-700 text-white">
+                {isQuickProductSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Thêm sản phẩm
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isQuickCustomerOpen} onOpenChange={setIsQuickCustomerOpen}>
         <DialogContent className="sm:max-w-[520px]">

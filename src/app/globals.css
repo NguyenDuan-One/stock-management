@@ -297,12 +297,18 @@
     font-size: 11px !important;
   }
 
+  .print-slip .overflow-auto,
+  .print-slip .overflow-hidden {
+    overflow: visible !important;
+  }
+
   .print-slip thead {
     display: table-header-group !important;
   }
 
   .print-slip tr {
     page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   .print-slip th,
@@ -315,5 +321,15 @@
   .print-slip th {
     background: #f1f5f9 !important;
     font-weight: 700 !important;
+  }
+
+  .print-page-code {
+    position: fixed !important;
+    right: 0 !important;
+    bottom: -7mm !important;
+    z-index: 9999 !important;
+    color: #64748b !important;
+    font-size: 10px !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
   }
 }

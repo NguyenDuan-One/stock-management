@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { isAverageCostMethod } from "@/lib/inventory-cost"
+
+const TRACKING_METHODS = ["None", "AverageCost", "FIFO", "SerialNumber", "LotNumber"]
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -37,8 +40,38 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const body = await req.json()
     const { 
       name, sku, categoryId, unit, description, 
-      minQuantity, costPrice, sellingPrice, barcode, serialNumber, isActive 
+      minQuantity, costPrice, sellingPrice, barcode, serialNumber, trackingMethod, isActive
     } = body
+
+    const currentProduct = await prisma.product.findUnique({
+      where: { id: resolvedParams.id },
+      include: {
+        _count: {
+          select: {
+            stockInItems: true,
+            stockOutItems: true,
+            inventoryTransactions: true,
+          }
+        }
+      }
+    })
+    if (!currentProduct) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+    if (!trackingMethod || !TRACKING_METHODS.includes(trackingMethod)) {
+      return NextResponse.json({ error: "Vui lòng chọn phương pháp tính giá tồn" }, { status: 400 })
+    }
+
+    const hasTransactions =
+      currentProduct._count.stockInItems > 0 ||
+      currentProduct._count.stockOutItems > 0 ||
+      currentProduct._count.inventoryTransactions > 0
+
+    if (hasTransactions && trackingMethod && trackingMethod !== currentProduct.trackingMethod) {
+      return NextResponse.json(
+        { error: "Không thể đổi phương pháp tính giá khi sản phẩm đã phát sinh giao dịch" },
+        { status: 400 }
+      )
+    }
 
     const existingSku = await prisma.product.findFirst({ 
       where: { 
@@ -64,6 +97,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         sellingPrice: sellingPrice ? parseFloat(sellingPrice) : null,
         barcode,
         serialNumber,
+        trackingMethod: hasTransactions ? currentProduct.trackingMethod : trackingMethod,
         isActive,
       }
     })

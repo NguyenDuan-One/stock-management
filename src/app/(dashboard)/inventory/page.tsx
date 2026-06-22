@@ -17,6 +17,7 @@ import { PageHeader } from "@/components/ui/page-header"
 import { TablePagination } from "@/components/ui/table-pagination"
 import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
+import { isAverageCostMethod } from "@/lib/inventory-cost"
 
 export default function InventoryPage() {
   const [products, setProducts] = React.useState<any[]>([])
@@ -25,6 +26,14 @@ export default function InventoryPage() {
   const [filterLowStock, setFilterLowStock] = React.useState(false)
   const [page, setPage] = React.useState(1)
   const limit = 10
+
+  const trackingLabels: Record<string, string> = {
+    None: "Không quản lý tồn",
+    AverageCost: "Bình quân",
+    FIFO: "FIFO",
+    SerialNumber: "Theo serial",
+    LotNumber: "Theo lot/lô",
+  }
 
   React.useEffect(() => {
     fetchInventory()
@@ -59,7 +68,7 @@ export default function InventoryPage() {
 
   // Calculate totals
   const totalItems = filteredProducts.reduce((sum, p) => sum + p.quantity, 0)
-  const totalValue = filteredProducts.reduce((sum, p) => sum + p.quantity * (p.costPrice || 0), 0)
+  const totalValue = filteredProducts.reduce((sum, p) => sum + Number(p.stockValue || 0), 0)
   const lowStockCount = products.filter((p) => p.quantity <= p.minQuantity).length
 
   return (
@@ -134,6 +143,7 @@ export default function InventoryPage() {
             <TableRow className="bg-slate-50/50">
               <TableHead>Sản phẩm</TableHead>
               <TableHead>Danh mục</TableHead>
+              <TableHead>Phương pháp giá</TableHead>
               <TableHead className="text-right">Tồn kho thực tế</TableHead>
               <TableHead className="text-right">Tồn tối thiểu</TableHead>
               <TableHead className="text-right">Đơn giá vốn</TableHead>
@@ -144,21 +154,22 @@ export default function InventoryPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center text-slate-500">
+                <TableCell colSpan={8} className="h-32 text-center text-slate-500">
                   <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" />
                   <span className="mt-2 block text-xs">Đang tải dữ liệu...</span>
                 </TableCell>
               </TableRow>
             ) : filteredProducts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center text-slate-500">
+                <TableCell colSpan={8} className="h-32 text-center text-slate-500">
                   Không tìm thấy sản phẩm nào.
                 </TableCell>
               </TableRow>
             ) : (
               paginatedProducts.map((prod) => {
                 const isWarning = prod.quantity <= prod.minQuantity
-                const itemTotalValue = prod.quantity * (prod.costPrice || 0)
+                const showUnitCost = isAverageCostMethod(prod.trackingMethod)
+                const itemTotalValue = Number(prod.stockValue || 0)
                 
                 return (
                   <TableRow key={prod.id} className="hover:bg-slate-50/50">
@@ -171,6 +182,11 @@ export default function InventoryPage() {
                         {prod.category?.name || "Khác"}
                       </Badge>
                     </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="border-none bg-blue-50 text-blue-700">
+                        {trackingLabels[prod.trackingMethod] || "Bình quân"}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-right font-bold text-slate-800">
                       {prod.quantity} {prod.unit || "cái"}
                     </TableCell>
@@ -178,7 +194,7 @@ export default function InventoryPage() {
                       {prod.minQuantity} {prod.unit || "cái"}
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      {prod.costPrice ? formatCurrency(prod.costPrice) : "-"}
+                      {showUnitCost && prod.costPrice ? formatCurrency(prod.costPrice) : ""}
                     </TableCell>
                     <TableCell className="text-right font-bold text-slate-900">
                       {formatCurrency(itemTotalValue)}

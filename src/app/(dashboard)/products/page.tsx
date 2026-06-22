@@ -1,10 +1,11 @@
 ﻿"use client"
 
 import * as React from "react"
-import { Plus, Search, Filter, MoreHorizontal, Edit, Trash, Loader2, Printer, ScanBarcode } from "lucide-react"
+import { Plus, Search, MoreHorizontal, Edit, Trash, Loader2, Printer, ScanBarcode } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from "@/components/ui/table"
@@ -27,6 +28,7 @@ import { TablePagination } from "@/components/ui/table-pagination"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { BarcodeScannerInput } from "@/components/barcode/barcode-scanner-input"
 import { formatCurrency } from "@/lib/utils"
+import { isAverageCostMethod } from "@/lib/inventory-cost"
 import { toast } from "sonner"
 
 type PrintMode = "sku" | "serial"
@@ -36,6 +38,7 @@ export default function ProductsPage() {
   const [categories, setCategories] = React.useState<any[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [search, setSearch] = React.useState("")
+  const [filterCategoryId, setFilterCategoryId] = React.useState("ALL")
   const [page, setPage] = React.useState(1)
   const [total, setTotal] = React.useState(0)
   const limit = 10
@@ -58,11 +61,38 @@ export default function ProductsPage() {
   const [costPrice, setCostPrice] = React.useState("")
   const [sellingPrice, setSellingPrice] = React.useState("")
   const [minQuantity, setMinQuantity] = React.useState("5")
+  const [trackingMethod, setTrackingMethod] = React.useState("AverageCost")
+  const usesAverageCost = isAverageCostMethod(trackingMethod)
+  const [isActive, setIsActive] = React.useState(true)
+
+  const trackingOptions = [
+    { value: "None", label: "Không quản lý tồn", hint: "Không tính giá vốn tự động, chỉ dùng giá nhập/bán thủ công." },
+    { value: "AverageCost", label: "Bình quân gia quyền", hint: "Giá vốn = tổng giá trị tồn và nhập mới / tổng số lượng." },
+    { value: "FIFO", label: "FIFO", hint: "Xuất trước theo lô nhập trước, giá vốn lấy theo thứ tự nhập kho." },
+    { value: "SerialNumber", label: "Theo serial", hint: "Mỗi serial là một đơn vị tồn, phù hợp bảo hành và thiết bị." },
+    { value: "LotNumber", label: "Theo lot/lô", hint: "Quản lý tồn theo lô, hạn dùng hoặc lô sản xuất." },
+  ]
+
+  const getTrackingOption = (value: string) => {
+    return trackingOptions.find((option) => option.value === value) || trackingOptions[1]
+  }
+
+  React.useEffect(() => {
+    if (!usesAverageCost) setCostPrice("")
+  }, [usesAverageCost])
+
+  const hasProductTransactions = (product: any) => {
+    return (
+      Number(product?._count?.stockInItems || 0) > 0 ||
+      Number(product?._count?.stockOutItems || 0) > 0 ||
+      Number(product?._count?.inventoryTransactions || 0) > 0
+    )
+  }
 
   React.useEffect(() => {
     fetchProducts()
     fetchCategories()
-  }, [search, page])
+  }, [search, filterCategoryId, page])
 
   const fetchProducts = async () => {
     try {
@@ -72,6 +102,9 @@ export default function ProductsPage() {
         page: String(page),
         limit: String(limit),
       })
+      if (filterCategoryId !== "ALL") {
+        queryParams.set("categoryId", filterCategoryId)
+      }
       const res = await fetch(`/api/products?${queryParams}`)
       const json = await res.json()
       setProducts(json.data || [])
@@ -104,6 +137,8 @@ export default function ProductsPage() {
     setCostPrice("")
     setSellingPrice("")
     setMinQuantity("5")
+    setTrackingMethod("AverageCost")
+    setIsActive(true)
     setIsOpen(true)
   }
 
@@ -117,6 +152,8 @@ export default function ProductsPage() {
     setCostPrice(product.costPrice ? String(product.costPrice) : "")
     setSellingPrice(product.sellingPrice ? String(product.sellingPrice) : "")
     setMinQuantity(String(product.minQuantity ?? 5))
+    setTrackingMethod(product.trackingMethod || "AverageCost")
+    setIsActive(product.isActive !== false)
     setIsOpen(true)
   }
 
@@ -176,6 +213,16 @@ export default function ProductsPage() {
       toast.error("Vui lòng nhập tên và mã SKU")
       return
     }
+    if (!trackingMethod) {
+      toast.error("Vui lòng chọn phương pháp tính giá tồn")
+      return
+    }
+    if (editingProduct && isActive === false && Number(editingProduct.quantity || 0) > 0) {
+      const ok = window.confirm(
+        `Sản phẩm "${editingProduct.name}" vẫn còn tồn kho ${editingProduct.quantity} ${editingProduct.unit || ""}. Bạn vẫn muốn chuyển sang không active? Sản phẩm sẽ không hiện trong nhập/xuất kho.`
+      )
+      if (!ok) return
+    }
 
     setIsSubmitting(true)
     const isEdit = !!editingProduct
@@ -188,7 +235,9 @@ export default function ProductsPage() {
         unit,
         costPrice,
         sellingPrice,
-        minQuantity
+        minQuantity,
+        trackingMethod,
+        isActive
       }
 
       const res = await fetch(isEdit ? `/api/products/${editingProduct.id}` : "/api/products", {
@@ -237,10 +286,25 @@ export default function ProductsPage() {
         subtitle="Quản lý danh sách sản phẩm và tồn kho"
       >
         <div className="flex items-center gap-2">
-          <Button variant="outline">
-            <Filter className="mr-2 h-4 w-4" />
-            Lọc
-          </Button>
+          <Select
+            value={filterCategoryId}
+            onValueChange={(value) => {
+              setFilterCategoryId(value)
+              setPage(1)
+            }}
+          >
+            <SelectTrigger className="h-10 w-[190px] bg-white">
+              <SelectValue placeholder="Lọc danh mục" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Tất cả danh mục</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleOpenAdd}>
             <Plus className="mr-2 h-4 w-4" />
             Thêm sản phẩm
@@ -279,7 +343,9 @@ export default function ProductsPage() {
               <TableRow className="bg-slate-50/50">
                 <TableHead>Sản phẩm</TableHead>
                 <TableHead>Danh mục</TableHead>
+                <TableHead>Phương pháp tính</TableHead>
                 <TableHead className="text-right">Tồn kho</TableHead>
+                <TableHead className="text-right">Giá nhập (₫)</TableHead>
                 <TableHead className="text-right">Giá bán (₫)</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 <TableHead className="w-[80px]"></TableHead>
@@ -288,14 +354,14 @@ export default function ProductsPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center text-slate-500">
+                  <TableCell colSpan={7} className="h-32 text-center text-slate-500">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" />
                     <span className="mt-2 block text-xs">Đang tải dữ liệu...</span>
                   </TableCell>
                 </TableRow>
               ) : products.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center text-slate-500">
+                  <TableCell colSpan={7} className="h-32 text-center text-slate-500">
                     Không tìm thấy sản phẩm nào.
                   </TableCell>
                 </TableRow>
@@ -311,17 +377,30 @@ export default function ProductsPage() {
                         {product.category?.name || "Khác"}
                       </Badge>
                     </TableCell>
+                    <TableCell>
+                      <div className="font-medium text-slate-800">{getTrackingOption(product.trackingMethod).label}</div>
+                      <div className="mt-1 max-w-[220px] text-xs leading-4 text-slate-500">
+                        {getTrackingOption(product.trackingMethod).hint}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">
                       <span className={`font-semibold ${product.quantity <= product.minQuantity ? 'text-red-600' : 'text-slate-900'}`}>
                         {product.quantity}
                       </span>
                       <span className="text-xs text-slate-500 ml-1">{product.unit}</span>
                     </TableCell>
+                     <TableCell className="text-right font-medium text-slate-900">
+                      {product.costPrice ? formatCurrency(product.costPrice) : "-"}
+                    </TableCell>
                     <TableCell className="text-right font-medium text-slate-900">
                       {product.sellingPrice ? formatCurrency(product.sellingPrice) : "-"}
                     </TableCell>
                     <TableCell>
-                      {product.quantity > product.minQuantity ? (
+                      {product.isActive === false ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                          Không active
+                        </span>
+                      ) : product.quantity > product.minQuantity ? (
                         <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
                           Còn hàng
                         </span>
@@ -442,15 +521,46 @@ export default function ProductsPage() {
                 />
               </div>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="prod-tracking">Phương pháp tính giá tồn *</Label>
+              <Select value={trackingMethod} onValueChange={setTrackingMethod}>
+                <SelectTrigger id="prod-tracking" className="bg-white" disabled={!!editingProduct && hasProductTransactions(editingProduct)}>
+                  <SelectValue placeholder="Chọn phương pháp tính" />
+                </SelectTrigger>
+                <SelectContent>
+                  {trackingOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs leading-5 text-slate-500">{getTrackingOption(trackingMethod).hint}</p>
+              {editingProduct && hasProductTransactions(editingProduct) && (
+                <p className="text-xs font-medium text-amber-600">
+                  Sản phẩm đã phát sinh giao dịch nên không thể đổi phương pháp tính giá.
+                </p>
+              )}
+            </div>
+            <div className="flex items-center justify-between rounded-lg border bg-slate-50 p-3">
+              <div>
+                <Label htmlFor="prod-active">Active sản phẩm</Label>
+                <p className="mt-1 text-xs text-slate-500">
+                  Tắt active để ẩn sản phẩm khỏi tìm kiếm nhập/xuất kho.
+                </p>
+              </div>
+              <Switch id="prod-active" checked={isActive} onCheckedChange={setIsActive} />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="prod-cost">Giá nhập (₫)</Label>
+                <Label htmlFor="prod-cost">Giá nhập(đ)</Label>
                 <Input
                   id="prod-cost"
                   type="number"
                   min="0"
                   value={costPrice}
                   onChange={(e) => setCostPrice(e.target.value)}
+                  placeholder={"Giá nhập (VND)"}
                 />
               </div>
               <div className="space-y-2">
@@ -461,6 +571,7 @@ export default function ProductsPage() {
                   min="0"
                   value={sellingPrice}
                   onChange={(e) => setSellingPrice(e.target.value)}
+                  placeholder={"Giá xuất (VND)"}
                 />
               </div>
             </div>

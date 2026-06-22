@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Menu, Bell, User as UserIcon, Lock, LogOut } from "lucide-react"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { signOut } from "next-auth/react"
 import Link from "next/link"
 
@@ -31,6 +31,7 @@ interface HeaderProps {
 
 export function Header({ user, onMenuClick }: HeaderProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const displayName = user?.fullName || user?.name || user?.email || "User"
   const roleText = user?.roles?.join(", ")
 
@@ -120,11 +121,11 @@ export function Header({ user, onMenuClick }: HeaderProps) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/profile")}>
                 <UserIcon className="mr-2 h-4 w-4" />
                 <span>Hồ sơ cá nhân</span>
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/profile#password-section")}>
                 <Lock className="mr-2 h-4 w-4" />
                 <span>Đổi mật khẩu</span>
               </DropdownMenuItem>

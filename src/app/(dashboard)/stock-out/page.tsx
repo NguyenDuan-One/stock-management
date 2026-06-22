@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { Plus, Search, Eye, Trash, Loader2, Calendar, FileText } from "lucide-react"
+import { Plus, Search, Eye, Loader2, Calendar, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -36,6 +36,7 @@ export default function StockOutListPage() {
   const [status, setStatus] = React.useState("ALL")
   const [page, setPage] = React.useState(1)
   const [total, setTotal] = React.useState(0)
+  const [approvingId, setApprovingId] = React.useState<string | null>(null)
   const limit = 10
 
   React.useEffect(() => {
@@ -76,6 +77,29 @@ export default function StockOutListPage() {
         return <Badge className="bg-red-100 text-red-800 hover:bg-red-100 border-none">Đã hủy</Badge>
       default:
         return <Badge variant="secondary">{status}</Badge>
+    }
+  }
+
+  const handleApprove = async (item: any) => {
+    if (!window.confirm(`Duyệt bản nháp ${item.code} và ghi nhận xuất kho?`)) return
+
+    try {
+      setApprovingId(item.id)
+      const res = await fetch(`/api/stock-out/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "APPROVE" })
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || "Không thể duyệt phiếu")
+
+      toast.success("Đã duyệt phiếu và ghi nhận xuất kho")
+      fetchStockOuts()
+    } catch (error: unknown) {
+      console.error(error)
+      toast.error(error instanceof Error ? error.message : "Không thể duyệt phiếu")
+    } finally {
+      setApprovingId(null)
     }
   }
 
@@ -121,7 +145,7 @@ export default function StockOutListPage() {
             <SelectContent>
               <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
               <SelectItem value="DRAFT">Bản nháp</SelectItem>
-              <SelectItem value="CONFIRMED">Đã hoàn thành</SelectItem>
+              <SelectItem value="CONFIRMED">Hoàn thành</SelectItem>
               <SelectItem value="CANCELLED">Đã hủy</SelectItem>
             </SelectContent>
           </Select>
@@ -192,14 +216,33 @@ export default function StockOutListPage() {
                     {item.createdBy?.fullName || item.createdBy?.username || "-"}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-blue-600 hover:text-blue-700"
-                      onClick={() => router.push(`/stock-out/${item.id}`)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                    <div className="flex justify-end gap-1">
+                      {item.status === "DRAFT" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-green-600 hover:text-green-700"
+                          onClick={() => handleApprove(item)}
+                          disabled={approvingId === item.id}
+                          title="Duyệt phiếu"
+                        >
+                          {approvingId === item.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-blue-600 hover:text-blue-700"
+                        onClick={() => router.push(`/stock-out/${item.id}`)}
+                        title="Xem phiếu"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

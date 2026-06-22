@@ -144,7 +144,7 @@ export default function LoginPage() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className="pl-10 h-11"
-                    placeholder="admin"
+                    placeholder="username hoặc email"
                   />
                 </div>
               </div>

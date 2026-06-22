@@ -112,7 +112,8 @@ export default function ProductDetailPage() {
           sellingPrice: sellingPrice || null,
           barcode,
           serialNumber,
-          isActive: true,
+          trackingMethod: product.trackingMethod,
+          isActive: product.isActive,
         }),
       })
 

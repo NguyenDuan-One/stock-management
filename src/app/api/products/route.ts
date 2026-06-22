@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { calculateInventoryValue, isAverageCostMethod } from "@/lib/inventory-cost"
+
+const TRACKING_METHODS = ["None", "AverageCost", "FIFO", "SerialNumber", "LotNumber"]
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,7 +19,6 @@ export async function GET(req: NextRequest) {
     const skip = (page - 1) * limit
 
     const whereClause: any = {
-      isActive: true,
       ...(search && {
         OR: [
           { name: { contains: search } },
@@ -33,7 +35,22 @@ export async function GET(req: NextRequest) {
       prisma.product.findMany({
         where: whereClause,
         include: {
-          category: { select: { id: true, name: true } }
+          category: { select: { id: true, name: true } },
+          stockInItems: {
+            include: { stockIn: { select: { status: true } } },
+            orderBy: { createdAt: "asc" },
+          },
+          stockOutItems: {
+            include: { stockOut: { select: { status: true } } },
+            orderBy: { createdAt: "asc" },
+          },
+          _count: {
+            select: {
+              stockInItems: true,
+              stockOutItems: true,
+              inventoryTransactions: true,
+            }
+          }
         },
         skip,
         take: limit,
@@ -41,8 +58,14 @@ export async function GET(req: NextRequest) {
       })
     ])
 
+    const productsWithValue = products.map((product) => ({
+      ...product,
+      
+      stockValue: calculateInventoryValue(product),
+    }))
+
     return NextResponse.json({
-      data: products,
+      data: productsWithValue,
       pagination: {
         total,
         page,
@@ -64,11 +87,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { 
       name, sku, categoryId, unit, description, 
-      minQuantity, costPrice, sellingPrice, barcode, serialNumber 
+      minQuantity, costPrice, sellingPrice, barcode, serialNumber, trackingMethod
     } = body
 
     if (!name || !sku) {
       return NextResponse.json({ error: "Name and SKU are required" }, { status: 400 })
+    }
+
+    if (!trackingMethod || !TRACKING_METHODS.includes(trackingMethod)) {
+      return NextResponse.json({ error: "Vui lòng chọn phương pháp tính giá tồn" }, { status: 400 })
     }
 
     const existingSku = await prisma.product.findUnique({ where: { sku } })
@@ -88,6 +115,7 @@ export async function POST(req: NextRequest) {
         sellingPrice: sellingPrice ? parseFloat(sellingPrice) : null,
         barcode,
         serialNumber,
+        trackingMethod,
       }
     })
 

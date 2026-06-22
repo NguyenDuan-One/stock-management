@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
         id: p.id,
         name: p.name,
         sku: p.sku,
+        trackingMethod: p.trackingMethod,
         categoryName: p.category?.name || "Khác",
         totalQtyImported,
         totalQtySold,

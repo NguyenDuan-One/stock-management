@@ -88,14 +88,22 @@ model RolePermission {
 // PRODUCT CATEGORIES
 // ============================================================
 
+enum InventoryTrackingMethod {
+  None
+  AverageCost
+  FIFO
+  SerialNumber
+  LotNumber
+}
+
 model ProductCategory {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  code        String   @unique
-  description String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String                  @id @default(cuid())
+  name           String                  @unique
+  code           String                  @unique
+  description    String?
+  isActive       Boolean                 @default(true)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
 
   products Product[]
 
@@ -129,6 +137,7 @@ model Product {
   warrantyMonths   Int           @default(12)
   quantity         Int           @default(0)
   minQuantity      Int           @default(0)
+  trackingMethod   InventoryTrackingMethod @default(AverageCost)
   costPrice        Decimal?      @db.Decimal(15, 2)
   sellingPrice     Decimal?      @db.Decimal(15, 2)
   notes            String?       @db.Text

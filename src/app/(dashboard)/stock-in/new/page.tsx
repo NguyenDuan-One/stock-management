@@ -35,6 +35,7 @@ import { TablePagination } from "@/components/ui/table-pagination"
 import { BarcodeScannerInput, type BarcodeSuggestion } from "@/components/barcode/barcode-scanner-input"
 import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
+import { isAverageCostMethod } from "@/lib/inventory-cost"
 
 interface StockInItem {
   id: string // temporary client-side ID
@@ -102,6 +103,22 @@ export default function NewStockInPage() {
   const [quickProductCostPrice, setQuickProductCostPrice] = React.useState("")
   const [quickProductSellingPrice, setQuickProductSellingPrice] = React.useState("")
   const [quickProductMinQuantity, setQuickProductMinQuantity] = React.useState("0")
+  const [quickProductTrackingMethod, setQuickProductTrackingMethod] = React.useState("AverageCost")
+  const quickProductUsesAverageCost = isAverageCostMethod(quickProductTrackingMethod)
+
+   const trackingOptions = [
+    { value: "None", label: "Không quản lý tồn", hint: "Không tính giá vốn tự động, chỉ dùng giá nhập/bán thủ công." },
+    { value: "AverageCost", label: "Bình quân gia quyền", hint: "Giá vốn = tổng giá trị tồn và nhập mới / tổng số lượng." },
+    { value: "FIFO", label: "FIFO", hint: "Xuất trước theo lô nhập trước, giá vốn lấy theo thứ tự nhập kho." },
+    { value: "SerialNumber", label: "Theo serial", hint: "Mỗi serial là một đơn vị tồn, phù hợp bảo hành và thiết bị." },
+    { value: "LotNumber", label: "Theo lot/lô", hint: "Quản lý tồn theo lô, hạn dùng hoặc lô sản xuất." },
+  ]
+
+  const getTrackingOption = (value: string) => trackingOptions.find((option) => option.value === value) || trackingOptions[1]
+
+  React.useEffect(() => {
+    if (!quickProductUsesAverageCost) setQuickProductCostPrice("")
+  }, [quickProductUsesAverageCost])
   
   // Adding item states
   const [addSerialNumber, setAddSerialNumber] = React.useState("")
@@ -205,6 +222,7 @@ export default function NewStockInPage() {
     setQuickProductCostPrice("")
     setQuickProductSellingPrice("")
     setQuickProductMinQuantity("0")
+    setQuickProductTrackingMethod("AverageCost")
     setIsQuickProductOpen(true)
   }
 
@@ -311,9 +329,10 @@ export default function NewStockInPage() {
           barcode: quickProductBarcode.trim(),
           categoryId: quickProductCategoryId || undefined,
           unit: quickProductUnit.trim() || "cái",
-          costPrice: quickProductCostPrice,
+          costPrice: quickProductUsesAverageCost ? quickProductCostPrice : "",
           sellingPrice: quickProductSellingPrice,
           minQuantity: quickProductMinQuantity,
+          trackingMethod: quickProductTrackingMethod,
         }),
       })
 
@@ -962,15 +981,33 @@ export default function NewStockInPage() {
                 />
               </div>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="quick-product-tracking">Phương pháp tính giá tồn *</Label>
+              <Select value={quickProductTrackingMethod} onValueChange={setQuickProductTrackingMethod}>
+                <SelectTrigger id="quick-product-tracking" className="bg-white">
+                  <SelectValue placeholder="Chọn phương pháp tính" />
+                </SelectTrigger>
+                <SelectContent>
+                  {trackingOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs leading-5 text-slate-500">{getTrackingOption(quickProductTrackingMethod).hint}</p>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="quick-product-cost">Giá nhập</Label>
+                <Label htmlFor="quick-product-cost">Giá vốn bình quân</Label>
                 <Input
                   id="quick-product-cost"
                   type="number"
                   min="0"
                   value={quickProductCostPrice}
                   onChange={(e) => setQuickProductCostPrice(e.target.value)}
+                  disabled={!quickProductUsesAverageCost}
+                  placeholder={quickProductUsesAverageCost ? "Nhập giá vốn bình quân" : "Để trống"}
                 />
               </div>
               <div className="space-y-2">
