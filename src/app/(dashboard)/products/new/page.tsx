@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Loader2 } from "lucide-react"
+import { ArrowLeft, Loader2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
 import {
   Select,
   SelectContent,
@@ -27,6 +28,7 @@ export default function NewProductPage() {
   const [name, setName] = useState("")
   const [sku, setSku] = useState("")
   const [categoryId, setCategoryId] = useState("")
+  const [categoryIds, setCategoryIds] = useState<string[]>([])
   const [unit, setUnit] = useState("cái")
   const [description, setDescription] = useState("")
   const [minQuantity, setMinQuantity] = useState("0")
@@ -69,7 +71,8 @@ export default function NewProductPage() {
         body: JSON.stringify({
           name,
           sku,
-          categoryId: categoryId || undefined,
+          categoryId: categoryId || (categoryIds.length > 0 ? categoryIds[0] : undefined),
+          categoryIds,
           unit,
           description,
           minQuantity: minQuantity || "0",
@@ -141,22 +144,78 @@ export default function NewProductPage() {
 
           {/* Danh mục */}
           <div className="space-y-2">
-            <Label htmlFor="category">Danh mục</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="category">Danh mục ({categoryIds.length} đã chọn)</Label>
+              {categoryIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => { setCategoryIds([]); setCategoryId(""); }}
+                  className="text-xs text-slate-500 hover:text-red-600 transition-colors"
+                >
+                  Xóa tất cả
+                </button>
+              )}
+            </div>
             {isLoadingCategories ? (
               <Input disabled placeholder="Đang tải danh mục..." />
             ) : (
-              <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn danh mục" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <>
+                <Select
+                  value=""
+                  onValueChange={(val) => {
+                    if (val && !categoryIds.includes(val)) {
+                      const next = [...categoryIds, val]
+                      setCategoryIds(next)
+                      if (!categoryId) setCategoryId(val)
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="+ Chọn thêm danh mục..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id} disabled={categoryIds.includes(cat.id)}>
+                        {cat.name} {categoryIds.includes(cat.id) ? "✓" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {categoryIds.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {categoryIds.map((cId) => {
+                      const cat = categories.find((c) => c.id === cId)
+                      if (!cat) return null
+                      const isPrimary = cId === categoryId || (!categoryId && cId === categoryIds[0])
+                      return (
+                        <Badge
+                          key={cId}
+                          variant="secondary"
+                          className="flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 py-0.5 px-2 text-xs"
+                        >
+                          <span>{cat.name}</span>
+                          {isPrimary && (
+                            <span className="text-[10px] bg-blue-200 text-blue-800 rounded px-1 font-medium">Chính</span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = categoryIds.filter((id) => id !== cId)
+                              setCategoryIds(next)
+                              if (categoryId === cId) setCategoryId(next[0] || "")
+                            }}
+                            className="ml-0.5 rounded-full hover:bg-blue-200 p-0.5 text-blue-600 hover:text-blue-900"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400 italic">Sản phẩm có thể gán cho 1 hoặc nhiều danh mục</p>
+                )}
+              </>
             )}
           </div>
 

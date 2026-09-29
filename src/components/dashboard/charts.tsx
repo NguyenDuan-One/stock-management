@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import {
   BarChart,
   Bar,
@@ -26,6 +27,12 @@ interface DashboardChartsProps {
 }
 
 export function DashboardCharts({ data }: DashboardChartsProps) {
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   // We need to reverse the data so it goes from oldest to newest (left to right)
   const chartData = [...data].reverse()
 
@@ -52,6 +59,30 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
     return null
   }
 
+  if (!isMounted) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Nhập / Xuất kho 6 tháng gần nhất</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[350px] w-full animate-pulse bg-slate-100 rounded-lg" />
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Xu hướng Doanh thu vs Chi phí</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px] w-full animate-pulse bg-slate-100 rounded-lg" />
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -59,8 +90,8 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
           <CardTitle>Nhập / Xuất kho 6 tháng gần nhất</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[350px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-[350px] w-full min-w-0">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={350}>
               <BarChart
                 data={chartData}
                 margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
@@ -94,8 +125,8 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
           <CardTitle>Xu hướng Doanh thu vs Chi phí</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-[300px] w-full min-w-0">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={300}>
               <LineChart
                 data={chartData}
                 margin={{ top: 20, right: 30, left: 20, bottom: 5 }}

@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { Providers } from "@/components/providers";
+import { auth } from "@/lib/auth";
 
 const inter = Inter({ subsets: ["latin", "vietnamese"] });
 
@@ -14,15 +15,17 @@ export const metadata: Metadata = {
   description: "Hệ thống quản lý nhập/xuất/tồn kho cho công ty công nghệ",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await auth();
+
   return (
     <html lang="vi" suppressHydrationWarning>
       <body className={inter.className}>
-        <Providers>
+        <Providers session={session}>
           {children}
           <Toaster richColors position="top-right" />
         </Providers>

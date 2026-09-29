@@ -143,6 +143,7 @@ async function main() {
     { name: "UPS", code: "UPS", description: "Bộ lưu điện" },
     { name: "Phụ kiện", code: "ACC", description: "Phụ kiện công nghệ" },
     { name: "Phần mềm", code: "SFT", description: "Bản quyền phần mềm" },
+    { name: "Bàn phím & Chuột", code: "KBM", description: "Bàn phím cơ, chuột không dây và thiết bị ngoại vi văn phòng" },
   ];
 
   for (const cat of categories) {
@@ -161,6 +162,8 @@ async function main() {
   const srvCat = await prisma.productCategory.findUnique({ where: { code: "SRV" } });
   const upsCat = await prisma.productCategory.findUnique({ where: { code: "UPS" } });
   const dskCat = await prisma.productCategory.findUnique({ where: { code: "DSK" } });
+  const kbmCat = await prisma.productCategory.findUnique({ where: { code: "KBM" } });
+  const accCat = await prisma.productCategory.findUnique({ where: { code: "ACC" } });
 
   // ============================================================
   // PRODUCTS
@@ -316,16 +319,127 @@ async function main() {
       status: "OUT_OF_STOCK" as const,
       barcode: "8901234567899",
     },
+    {
+      name: "Bàn phím cơ không dây Logitech MX Mechanical",
+      sku: "LOGI-MX-MECH",
+      model: "MX Mechanical Linear",
+      brand: "Logitech",
+      categoryId: kbmCat?.id,
+      unit: "cái",
+      warrantyMonths: 12,
+      quantity: 15,
+      minQuantity: 3,
+      costPrice: 2800000,
+      sellingPrice: 3500000,
+      status: "IN_STOCK" as const,
+      barcode: "8901234567900",
+      categoryIds: [kbmCat?.id, accCat?.id],
+    },
+    {
+      name: "Chuột không dây Logitech MX Master 3S",
+      sku: "LOGI-MX-M3S",
+      model: "MX Master 3S",
+      brand: "Logitech",
+      categoryId: kbmCat?.id,
+      unit: "cái",
+      warrantyMonths: 12,
+      quantity: 20,
+      minQuantity: 5,
+      costPrice: 1900000,
+      sellingPrice: 2450000,
+      status: "IN_STOCK" as const,
+      barcode: "8901234567901",
+      categoryIds: [kbmCat?.id, accCat?.id],
+    },
+    {
+      name: "Chuột công thái học Logitech Lift Vertical",
+      sku: "LOGI-LIFT-VERT",
+      model: "Lift Vertical Ergonomic",
+      brand: "Logitech",
+      categoryId: kbmCat?.id,
+      unit: "cái",
+      warrantyMonths: 12,
+      quantity: 12,
+      minQuantity: 2,
+      costPrice: 1200000,
+      sellingPrice: 1600000,
+      status: "IN_STOCK" as const,
+      barcode: "8901234567902",
+      categoryIds: [kbmCat?.id, accCat?.id],
+    },
+    {
+      name: "Bàn phím cơ Keychron K2 Pro QMK/VIA",
+      sku: "KEY-K2PRO-WL",
+      model: "K2 Pro Wireless",
+      brand: "Keychron",
+      categoryId: kbmCat?.id,
+      unit: "cái",
+      warrantyMonths: 12,
+      quantity: 8,
+      minQuantity: 2,
+      costPrice: 2100000,
+      sellingPrice: 2700000,
+      status: "IN_STOCK" as const,
+      barcode: "8901234567903",
+      categoryIds: [kbmCat?.id, accCat?.id],
+    },
+    {
+      name: "Bàn phím Apple Magic Keyboard with Touch ID",
+      sku: "APL-MAGIC-KB",
+      model: "Magic Keyboard Touch ID",
+      brand: "Apple",
+      categoryId: kbmCat?.id,
+      unit: "cái",
+      warrantyMonths: 12,
+      quantity: 10,
+      minQuantity: 2,
+      costPrice: 3200000,
+      sellingPrice: 3990000,
+      status: "IN_STOCK" as const,
+      barcode: "8901234567904",
+      categoryIds: [kbmCat?.id, accCat?.id],
+    },
+    {
+      name: "Chuột Apple Magic Mouse 2024 Black",
+      sku: "APL-MAGIC-MSE",
+      model: "Magic Mouse Type-C",
+      brand: "Apple",
+      categoryId: kbmCat?.id,
+      unit: "cái",
+      warrantyMonths: 12,
+      quantity: 14,
+      minQuantity: 3,
+      costPrice: 1850000,
+      sellingPrice: 2390000,
+      status: "IN_STOCK" as const,
+      barcode: "8901234567905",
+      categoryIds: [kbmCat?.id, accCat?.id],
+    },
   ];
 
   for (const prod of products) {
-    await prisma.product.upsert({
-      where: { sku: prod.sku },
-      update: { quantity: prod.quantity },
-      create: prod as any,
+    const { categoryIds, ...prodData } = prod as any;
+    const product = await prisma.product.upsert({
+      where: { sku: prodData.sku },
+      update: { quantity: prodData.quantity },
+      create: prodData,
     });
+
+    const allCatIds = [
+      ...(prodData.categoryId ? [prodData.categoryId] : []),
+      ...(Array.isArray(categoryIds) ? categoryIds.filter(Boolean) : []),
+    ];
+    const uniqueCatIds = Array.from(new Set(allCatIds));
+
+    for (const cId of uniqueCatIds) {
+      await prisma.productCategoryAssignment.upsert({
+        where: { productId_categoryId: { productId: product.id, categoryId: cId } },
+        update: {},
+        create: { productId: product.id, categoryId: cId },
+      });
+    }
   }
-  console.log(`✅ Created ${products.length} products`);
+  console.log(`✅ Created ${products.length} products with category assignments`);
 
   // ============================================================
   // SUPPLIERS

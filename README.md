@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Stock Management - Datatech
 
-## Getting Started
+Hệ thống quản lý nhập / xuất / tồn kho và bảo hành thiết bị dành cho doanh nghiệp.
 
-First, run the development server:
+---
+
+## 🛠 Công nghệ sử dụng
+
+- **Framework**: Next.js 16 (App Router), React 19, TypeScript
+- **Styling**: Tailwind CSS v4, Lucide Icons
+- **Database & ORM**: MySQL, Prisma ORM
+- **Authentication**: NextAuth.js v5 (Beta)
+- **Form & Validation**: React Hook Form, Zod
+
+---
+
+## 🚀 Hướng dẫn cài đặt & Khởi chạy
+
+### 1. Cài đặt Dependencies
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Cấu hình biến môi trường (`.env`)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Sao chép `.env.example` thành `.env` (nếu chưa có) và cập nhật thông tin kết nối MySQL:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+DATABASE_URL="mysql://root:@localhost:3306/stockmanagement"
+AUTH_SECRET="stock-management-secret-key-2026-datatech-vn"
+AUTH_TRUST_HOST=true
+NEXT_PUBLIC_APP_NAME="Stock Management"
+```
 
-## Learn More
+> **Lưu ý**: Đảm bảo MySQL (qua **XAMPP**, **Laragon**, hoặc Docker) đang chạy ở cổng `3306`.
 
-To learn more about Next.js, take a look at the following resources:
+### 3. Đồng bộ cơ sở dữ liệu & Khởi tạo tài khoản (Seed Data)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Chạy các lệnh sau để khởi tạo bảng và dữ liệu mẫu (quyền hạn, vai trò, tài khoản, danh mục...):
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+# 1. Đồng bộ cấu trúc bảng vào database
+npm run db:push
 
-## Deploy on Vercel
+# 2. Khởi tạo tài khoản Admin và dữ liệu mẫu
+npm run db:seed
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 👥 Danh sách tài khoản mặc định
+
+Sau khi chạy `npm run db:seed`, bạn có thể đăng nhập bằng các tài khoản sau:
+
+| Vai trò | Username / Email | Mật khẩu | Quyền hạn |
+| :--- | :--- | :--- | :--- |
+| **Quản trị viên (Admin)** | `admin` *(hoặc `admin@datatech.vn`)* | `Admin@123` | **Toàn quyền hệ thống** |
+| **Quản lý (Manager)** | `manager` *(hoặc `manager@datatech.vn`)* | `Admin@123` | Quản lý kho, duyệt phiếu, xuất báo cáo |
+| **Nhân viên (Staff)** | `staff1` *(hoặc `staff1@datatech.vn`)* | `Admin@123` | Tạo phiếu nhập / xuất kho |
+| **Người xem (Viewer)** | `viewer` *(hoặc `viewer@datatech.vn`)* | `Admin@123` | Chỉ xem thông tin |
+
+---
+
+## 💻 Các lệnh chạy hệ thống (Scripts)
+
+| Lệnh | Mô tả |
+| :--- | :--- |
+| `npm run dev` | **Khởi động dev server với Webpack** (đã cấu hình mặc định để chống crash trên Windows) |
+| `npm run dev:turbo` | Khởi động dev server với Turbopack |
+| `npm run build` | Build ứng dụng cho môi trường Production |
+| `npm run start` | Chạy ứng dụng Production sau khi đã build |
+| `npm run db:push` | Đẩy schema Prisma lên MySQL mà không cần tạo file migration |
+| `npm run db:seed` | Chạy file `prisma/seed.ts` để nạp dữ liệu mẫu ban đầu |
+
+> **💡 Lưu ý cho người dùng Windows**: Nếu gặp lỗi `FATAL: An unexpected Turbopack error occurred (panic: Next.js package not found)`, hãy sử dụng lệnh `npm run dev:webpack` để dev server chạy mượt mà và ổn định nhất.

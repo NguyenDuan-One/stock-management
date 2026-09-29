@@ -35,6 +35,12 @@ export interface Product {
   brand?: string | null;
   categoryId?: string | null;
   category?: ProductCategory | null;
+  categoryAssignments?: {
+    id: string;
+    categoryId: string;
+    category: ProductCategory;
+  }[];
+  categoryIds?: string[];
   unit: string;
   description?: string | null;
   status: ProductStatus;

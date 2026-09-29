@@ -105,7 +105,8 @@ model ProductCategory {
   createdAt      DateTime                @default(now())
   updatedAt      DateTime                @updatedAt
 
-  products Product[]
+  products            Product[]
+  categoryAssignments ProductCategoryAssignment[]
 
   @@map("product_categories")
 }
@@ -147,16 +148,32 @@ model Product {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
-  category             ProductCategory?       @relation(fields: [categoryId], references: [id])
-  stockInItems         StockInItem[]
-  stockOutItems        StockOutItem[]
+  category              ProductCategory?            @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryAssignments   ProductCategoryAssignment[]
+  stockInItems          StockInItem[]
+  stockOutItems         StockOutItem[]
   inventoryTransactions InventoryTransaction[]
-  warrantyRecords      WarrantyRecord[]
+  warrantyRecords       WarrantyRecord[]
 
   @@index([sku])
   @@index([serialNumber])
   @@index([barcode])
   @@map("products")
+}
+
+model ProductCategoryAssignment {
+  id         String          @id @default(cuid())
+  productId  String
+  categoryId String
+  createdAt  DateTime        @default(now())
+
+  product    Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category   ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, categoryId])
+  @@index([productId])
+  @@index([categoryId])
+  @@map("product_category_assignments")
 }
 
 // ============================================================

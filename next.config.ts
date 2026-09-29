@@ -10,6 +10,7 @@ const allowedDevOrigins = [
 ];
 
 const nextConfig: NextConfig = {
+  reactStrictMode: false,
   allowedDevOrigins,
 };
 

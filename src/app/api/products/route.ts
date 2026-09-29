@@ -27,7 +27,12 @@ export async function GET(req: NextRequest) {
           { barcode: { contains: search } },
         ]
       }),
-      ...(categoryId && { categoryId }),
+      ...(categoryId && {
+        OR: [
+          { categoryId },
+          { categoryAssignments: { some: { categoryId } } }
+        ]
+      }),
     }
 
     const [total, products] = await Promise.all([
@@ -35,7 +40,12 @@ export async function GET(req: NextRequest) {
       prisma.product.findMany({
         where: whereClause,
         include: {
-          category: { select: { id: true, name: true } },
+          category: { select: { id: true, name: true, code: true } },
+          categoryAssignments: {
+            include: {
+              category: { select: { id: true, name: true, code: true } }
+            }
+          },
           stockInItems: {
             include: { stockIn: { select: { status: true } } },
             orderBy: { createdAt: "asc" },
@@ -86,7 +96,7 @@ export async function POST(req: NextRequest) {
     
     const body = await req.json()
     const { 
-      name, sku, categoryId, unit, description, 
+      name, sku, categoryId, categoryIds, unit, description, 
       minQuantity, costPrice, sellingPrice, barcode, serialNumber, trackingMethod
     } = body
 
@@ -103,11 +113,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "SKU already exists" }, { status: 400 })
     }
 
+    const rawCategoryIds: string[] = Array.isArray(categoryIds)
+      ? categoryIds.filter(Boolean)
+      : (categoryId ? [categoryId] : [])
+    const uniqueCategoryIds = Array.from(new Set(rawCategoryIds))
+    const primaryCategoryId = categoryId || uniqueCategoryIds[0] || null
+
     const product = await prisma.product.create({
       data: {
         name,
         sku,
-        categoryId,
+        categoryId: primaryCategoryId,
         unit: unit || "cái",
         description,
         minQuantity: parseInt(minQuantity || "0"),
@@ -116,6 +132,17 @@ export async function POST(req: NextRequest) {
         barcode,
         serialNumber,
         trackingMethod,
+        ...(uniqueCategoryIds.length > 0 && {
+          categoryAssignments: {
+            create: uniqueCategoryIds.map((cId) => ({ categoryId: cId }))
+          }
+        })
+      },
+      include: {
+        category: true,
+        categoryAssignments: {
+          include: { category: true }
+        }
       }
     })
 

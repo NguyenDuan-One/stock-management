@@ -1,7 +1,7 @@
-﻿"use client"
+"use client"
 
 import * as React from "react"
-import { Plus, Search, MoreHorizontal, Edit, Trash, Loader2, Printer, ScanBarcode } from "lucide-react"
+import { Plus, Search, MoreHorizontal, Edit, Trash, Loader2, Printer, ScanBarcode, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -57,6 +57,7 @@ export default function ProductsPage() {
   const [sku, setSku] = React.useState("")
   const [barcode, setBarcode] = React.useState("")
   const [categoryId, setCategoryId] = React.useState("")
+  const [categoryIds, setCategoryIds] = React.useState<string[]>([])
   const [unit, setUnit] = React.useState("cái")
   const [costPrice, setCostPrice] = React.useState("")
   const [sellingPrice, setSellingPrice] = React.useState("")
@@ -133,6 +134,7 @@ export default function ProductsPage() {
     setSku("")
     setBarcode("")
     setCategoryId("")
+    setCategoryIds([])
     setUnit("cái")
     setCostPrice("")
     setSellingPrice("")
@@ -147,7 +149,17 @@ export default function ProductsPage() {
     setName(product.name || "")
     setSku(product.sku || "")
     setBarcode(product.barcode || "")
-    setCategoryId(product.categoryId || "")
+    const initialCats: string[] = []
+    if (product.categoryId) initialCats.push(product.categoryId)
+    if (Array.isArray(product.categoryAssignments)) {
+      product.categoryAssignments.forEach((a: any) => {
+        if (a.categoryId && !initialCats.includes(a.categoryId)) {
+          initialCats.push(a.categoryId)
+        }
+      })
+    }
+    setCategoryIds(initialCats)
+    setCategoryId(product.categoryId || initialCats[0] || "")
     setUnit(product.unit || "cái")
     setCostPrice(product.costPrice ? String(product.costPrice) : "")
     setSellingPrice(product.sellingPrice ? String(product.sellingPrice) : "")
@@ -231,7 +243,8 @@ export default function ProductsPage() {
         name,
         sku,
         barcode,
-        categoryId: categoryId || undefined,
+        categoryId: categoryId || (categoryIds.length > 0 ? categoryIds[0] : undefined),
+        categoryIds,
         unit,
         costPrice,
         sellingPrice,
@@ -373,9 +386,32 @@ export default function ProductsPage() {
                       <div className="text-xs text-slate-500 mt-1">SKU: {product.sku} {product.barcode && `| Mã vạch: ${product.barcode}`}</div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="font-normal bg-slate-100 text-slate-700 border-none">
-                        {product.category?.name || "Khác"}
-                      </Badge>
+                      <div className="flex flex-wrap gap-1 max-w-[200px]">
+                        {(() => {
+                          const assignedCats = product.categoryAssignments?.map((a: any) => a.category).filter(Boolean) || []
+                          const allCats = product.category
+                            ? [product.category, ...assignedCats.filter((c: any) => c.id !== product.category?.id)]
+                            : assignedCats
+
+                          if (allCats.length === 0) {
+                            return (
+                              <Badge variant="secondary" className="font-normal bg-slate-100 text-slate-500 border-none text-xs">
+                                Chưa phân loại
+                              </Badge>
+                            )
+                          }
+
+                          return allCats.map((cat: any) => (
+                            <Badge
+                              key={cat.id}
+                              variant="secondary"
+                              className="font-normal bg-blue-50 text-blue-700 border border-blue-100 text-xs px-2 py-0.5"
+                            >
+                              {cat.name}
+                            </Badge>
+                          ))
+                        })()}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="font-medium text-slate-800">{getTrackingOption(product.trackingMethod).label}</div>
@@ -497,29 +533,83 @@ export default function ProductsPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Danh mục</Label>
-                <Select value={categoryId} onValueChange={setCategoryId}>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Chọn danh mục" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Danh mục ({categoryIds.length} đã chọn)</Label>
+                {categoryIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => { setCategoryIds([]); setCategoryId(""); }}
+                    className="text-xs text-slate-500 hover:text-red-600 transition-colors"
+                  >
+                    Xóa tất cả
+                  </button>
+                )}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="prod-unit">Đơn vị tính</Label>
-                <Input
-                  id="prod-unit"
-                  value={unit}
-                  onChange={(e) => setUnit(e.target.value)}
-                  placeholder="VD: cái, chiếc, hộp"
-                />
-              </div>
+              <Select
+                value=""
+                onValueChange={(val) => {
+                  if (val && !categoryIds.includes(val)) {
+                    const next = [...categoryIds, val]
+                    setCategoryIds(next)
+                    if (!categoryId) setCategoryId(val)
+                  }
+                }}
+              >
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder="+ Chọn thêm danh mục..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.id} disabled={categoryIds.includes(c.id)}>
+                      {c.name} {categoryIds.includes(c.id) ? "✓" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {categoryIds.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {categoryIds.map((cId) => {
+                    const cat = categories.find((c) => c.id === cId)
+                    if (!cat) return null
+                    const isPrimary = cId === categoryId || (!categoryId && cId === categoryIds[0])
+                    return (
+                      <Badge
+                        key={cId}
+                        variant="secondary"
+                        className="flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 py-0.5 px-2 text-xs"
+                      >
+                        <span>{cat.name}</span>
+                        {isPrimary && (
+                          <span className="text-[10px] bg-blue-200 text-blue-800 rounded px-1 font-medium">Chính</span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = categoryIds.filter((id) => id !== cId)
+                            setCategoryIds(next)
+                            if (categoryId === cId) setCategoryId(next[0] || "")
+                          }}
+                          className="ml-0.5 rounded-full hover:bg-blue-200 p-0.5 text-blue-600 hover:text-blue-900"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 italic">Sản phẩm có thể gán cho 1 hoặc nhiều danh mục</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="prod-unit">Đơn vị tính</Label>
+              <Input
+                id="prod-unit"
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                placeholder="VD: cái, chiếc, hộp"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="prod-tracking">Phương pháp tính giá tồn *</Label>

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter, useParams } from "next/navigation"
-import { ArrowLeft, Loader2, Edit, Save, Trash, Clock, ShieldCheck, HelpCircle } from "lucide-react"
+import { ArrowLeft, Loader2, Edit, Save, Trash, Clock, ShieldCheck, HelpCircle, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -38,6 +38,7 @@ export default function ProductDetailPage() {
   const [name, setName] = React.useState("")
   const [sku, setSku] = React.useState("")
   const [categoryId, setCategoryId] = React.useState("")
+  const [categoryIds, setCategoryIds] = React.useState<string[]>([])
   const [unit, setUnit] = React.useState("")
   const [description, setDescription] = React.useState("")
   const [minQuantity, setMinQuantity] = React.useState("0")
@@ -62,7 +63,17 @@ export default function ProductDetailPage() {
       // Initialize form states
       setName(json.name || "")
       setSku(json.sku || "")
-      setCategoryId(json.categoryId || "")
+      const initialCats: string[] = []
+      if (json.categoryId) initialCats.push(json.categoryId)
+      if (Array.isArray(json.categoryAssignments)) {
+        json.categoryAssignments.forEach((a: any) => {
+          if (a.categoryId && !initialCats.includes(a.categoryId)) {
+            initialCats.push(a.categoryId)
+          }
+        })
+      }
+      setCategoryIds(initialCats)
+      setCategoryId(json.categoryId || initialCats[0] || "")
       setUnit(json.unit || "cái")
       setDescription(json.description || "")
       setMinQuantity(String(json.minQuantity || 0))
@@ -104,7 +115,8 @@ export default function ProductDetailPage() {
         body: JSON.stringify({
           name,
           sku,
-          categoryId: categoryId || null,
+          categoryId: categoryId || (categoryIds.length > 0 ? categoryIds[0] : null),
+          categoryIds,
           unit,
           description,
           minQuantity: minQuantity || "0",
@@ -268,7 +280,24 @@ export default function ProductDetailPage() {
                   </div>
                   <div>
                     <h4 className="text-sm font-medium text-slate-500">Danh mục</h4>
-                    <p className="text-slate-800 font-medium mt-1">{product.category?.name || "Khác"}</p>
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {(() => {
+                        const assignedCats = product.categoryAssignments?.map((a: any) => a.category).filter(Boolean) || []
+                        const allCats = product.category
+                          ? [product.category, ...assignedCats.filter((c: any) => c.id !== product.category?.id)]
+                          : assignedCats
+
+                        if (allCats.length === 0) {
+                          return <span className="text-slate-400 italic text-sm">Chưa phân loại</span>
+                        }
+
+                        return allCats.map((cat: any) => (
+                          <Badge key={cat.id} variant="secondary" className="bg-blue-50 text-blue-700 border border-blue-200 text-xs">
+                            {cat.name}
+                          </Badge>
+                        ))
+                      })()}
+                    </div>
                   </div>
                 </div>
                 <div>
@@ -333,19 +362,73 @@ export default function ProductDetailPage() {
                   <Input id="sku" value={sku} onChange={(e) => setSku(e.target.value)} required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="category">Danh mục</Label>
-                  <Select value={categoryId} onValueChange={setCategoryId}>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="category">Danh mục ({categoryIds.length} đã chọn)</Label>
+                    {categoryIds.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => { setCategoryIds([]); setCategoryId(""); }}
+                        className="text-xs text-slate-500 hover:text-red-600 transition-colors"
+                      >
+                        Xóa tất cả
+                      </button>
+                    )}
+                  </div>
+                  <Select
+                    value=""
+                    onValueChange={(val) => {
+                      if (val && !categoryIds.includes(val)) {
+                        const next = [...categoryIds, val]
+                        setCategoryIds(next)
+                        if (!categoryId) setCategoryId(val)
+                      }
+                    }}
+                  >
                     <SelectTrigger>
-                      <SelectValue placeholder="Chọn danh mục" />
+                      <SelectValue placeholder="+ Chọn thêm danh mục..." />
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name}
+                        <SelectItem key={cat.id} value={cat.id} disabled={categoryIds.includes(cat.id)}>
+                          {cat.name} {categoryIds.includes(cat.id) ? "✓" : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {categoryIds.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {categoryIds.map((cId) => {
+                        const cat = categories.find((c) => c.id === cId)
+                        if (!cat) return null
+                        const isPrimary = cId === categoryId || (!categoryId && cId === categoryIds[0])
+                        return (
+                          <Badge
+                            key={cId}
+                            variant="secondary"
+                            className="flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 py-0.5 px-2 text-xs"
+                          >
+                            <span>{cat.name}</span>
+                            {isPrimary && (
+                              <span className="text-[10px] bg-blue-200 text-blue-800 rounded px-1 font-medium">Chính</span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = categoryIds.filter((id) => id !== cId)
+                                setCategoryIds(next)
+                                if (categoryId === cId) setCategoryId(next[0] || "")
+                              }}
+                              className="ml-0.5 rounded-full hover:bg-blue-200 p-0.5 text-blue-600 hover:text-blue-900"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">Sản phẩm có thể gán cho 1 hoặc nhiều danh mục</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="unit">Đơn vị tính</Label>

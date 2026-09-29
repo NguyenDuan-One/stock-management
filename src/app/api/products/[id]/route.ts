@@ -15,6 +15,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       where: { id: resolvedParams.id },
       include: {
         category: true,
+        categoryAssignments: {
+          include: { category: true }
+        },
         inventoryTransactions: {
           take: 10,
           orderBy: { createdAt: "desc" }
@@ -39,7 +42,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const body = await req.json()
     const { 
-      name, sku, categoryId, unit, description, 
+      name, sku, categoryId, categoryIds, unit, description, 
       minQuantity, costPrice, sellingPrice, barcode, serialNumber, trackingMethod, isActive
     } = body
 
@@ -84,22 +87,56 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "SKU already exists" }, { status: 400 })
     }
 
-    const product = await prisma.product.update({
-      where: { id: resolvedParams.id },
-      data: {
-        name,
-        sku,
-        categoryId,
-        unit,
-        description,
-        minQuantity: parseInt(minQuantity || "0"),
-        costPrice: costPrice ? parseFloat(costPrice) : null,
-        sellingPrice: sellingPrice ? parseFloat(sellingPrice) : null,
-        barcode,
-        serialNumber,
-        trackingMethod: hasTransactions ? currentProduct.trackingMethod : trackingMethod,
-        isActive,
+    let uniqueCategoryIds: string[] | null = null
+    if (categoryIds !== undefined) {
+      const rawCategoryIds: string[] = Array.isArray(categoryIds)
+        ? categoryIds.filter(Boolean)
+        : (categoryId ? [categoryId] : [])
+      uniqueCategoryIds = Array.from(new Set(rawCategoryIds))
+    }
+
+    const primaryCategoryId = categoryId !== undefined
+      ? (categoryId || (uniqueCategoryIds && uniqueCategoryIds[0]) || null)
+      : (uniqueCategoryIds && uniqueCategoryIds.length > 0 ? uniqueCategoryIds[0] : currentProduct.categoryId)
+
+    const product = await prisma.$transaction(async (tx) => {
+      if (uniqueCategoryIds !== null) {
+        await tx.productCategoryAssignment.deleteMany({
+          where: { productId: resolvedParams.id }
+        })
+        if (uniqueCategoryIds.length > 0) {
+          await tx.productCategoryAssignment.createMany({
+            data: uniqueCategoryIds.map((cId) => ({
+              productId: resolvedParams.id,
+              categoryId: cId,
+            }))
+          })
+        }
       }
+
+      return await tx.product.update({
+        where: { id: resolvedParams.id },
+        data: {
+          name,
+          sku,
+          categoryId: primaryCategoryId,
+          unit,
+          description,
+          minQuantity: parseInt(minQuantity || "0"),
+          costPrice: costPrice ? parseFloat(costPrice) : null,
+          sellingPrice: sellingPrice ? parseFloat(sellingPrice) : null,
+          barcode,
+          serialNumber,
+          trackingMethod: hasTransactions ? currentProduct.trackingMethod : trackingMethod,
+          isActive,
+        },
+        include: {
+          category: true,
+          categoryAssignments: {
+            include: { category: true }
+          }
+        }
+      })
     })
 
     await prisma.auditLog.create({
