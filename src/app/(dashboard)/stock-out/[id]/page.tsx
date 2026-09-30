@@ -213,7 +213,7 @@ export default function StockOutDetailPage() {
   const paginatedItems = detailItems.slice((itemPage - 1) * itemLimit, itemPage * itemLimit)
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto print:block print:max-w-none print:p-0 print:border-none print:shadow-none">
+    <div className="space-y-6 w-full print:block print:max-w-none print:p-0 print:border-none print:shadow-none">
       <div className="flex items-center gap-2 print:hidden">
         <Button
           variant="outline"

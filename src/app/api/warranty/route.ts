@@ -17,11 +17,23 @@ export async function GET(req: NextRequest) {
 
     const whereClause: any = {
       ...(status && { status }),
+      OR: [
+        { stockOutItem: null },
+        { stockOutItem: { stockOut: { status: { not: "CANCELLED" } } } }
+      ],
       ...(search && {
-        OR: [
-          { serialNumber: { contains: search } },
-          { product: { name: { contains: search } } },
-          { customer: { name: { contains: search } } },
+        AND: [
+          {
+            OR: [
+              { serialNumber: { contains: search } },
+              { product: { name: { contains: search } } },
+              { product: { sku: { contains: search } } },
+              { customer: { name: { contains: search } } },
+              { stockOutItem: { stockOut: { poNumber: { contains: search } } } },
+              { stockOutItem: { stockOut: { contractNumber: { contains: search } } } },
+              { stockOutItem: { stockOut: { code: { contains: search } } } },
+            ]
+          }
         ]
       })
     }
@@ -35,7 +47,14 @@ export async function GET(req: NextRequest) {
           customer: { select: { id: true, name: true, code: true } },
           stockOutItem: { 
             include: { 
-              stockOut: { select: { code: true, exportDate: true } }
+              stockOut: { 
+                select: { 
+                  code: true, 
+                  exportDate: true, 
+                  poNumber: true, 
+                  contractNumber: true 
+                } 
+              }
             } 
           }
         },

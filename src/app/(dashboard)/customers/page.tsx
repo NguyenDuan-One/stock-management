@@ -158,7 +158,7 @@ export default function CustomersPage() {
         throw new Error(json.error || "Có lỗi xảy ra khi xóa")
       }
 
-      toast.success(json.mode === "soft" ? "Đã ẩn khách hàng vì có dữ liệu liên quan" : "Xóa khách hàng thành công")
+      toast.success(json.message || "Xóa khách hàng thành công")
       setDeletingCustomer(null)
       fetchCustomers()
     } catch (error: any) {

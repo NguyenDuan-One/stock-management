@@ -136,6 +136,8 @@ export default function WarrantyPage() {
                   <TableHead>Sản phẩm</TableHead>
                   <TableHead>Số Serial (S/N)</TableHead>
                   <TableHead>Khách hàng</TableHead>
+                  <TableHead>Số PO</TableHead>
+                  <TableHead>Số Hợp đồng</TableHead>
                   <TableHead>Ngày xuất bán</TableHead>
                   <TableHead>Hạn bảo hành</TableHead>
                   <TableHead>Ngày hết hạn</TableHead>
@@ -145,14 +147,14 @@ export default function WarrantyPage() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center text-slate-500">
+                    <TableCell colSpan={9} className="h-32 text-center text-slate-500">
                       <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" />
                       <span className="mt-2 block text-xs">Đang tải dữ liệu...</span>
                     </TableCell>
                   </TableRow>
                 ) : warranties.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center text-slate-500">
+                    <TableCell colSpan={9} className="h-32 text-center text-slate-500">
                       Không tìm thấy hồ sơ bảo hành nào.
                     </TableCell>
                   </TableRow>
@@ -168,6 +170,12 @@ export default function WarrantyPage() {
                       </TableCell>
                       <TableCell className="font-medium text-slate-700">
                         {item.customer?.name}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-slate-700">
+                        {item.stockOutItem?.stockOut?.poNumber || "-"}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-slate-700">
+                        {item.stockOutItem?.stockOut?.contractNumber || "-"}
                       </TableCell>
                       <TableCell className="text-slate-600 text-sm">
                         {formatDate(item.startDate)}

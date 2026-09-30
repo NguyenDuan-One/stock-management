@@ -50,16 +50,54 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     const customer = await prisma.customer.findUnique({
       where: { id },
-      include: { _count: { select: { stockOuts: true, warrantyRecords: true } } },
+      include: { 
+        stockOuts: {
+          select: { id: true, status: true, code: true }
+        },
+        warrantyRecords: {
+          select: { id: true, status: true }
+        }
+      },
     })
-    if (!customer) return NextResponse.json({ error: "Not found" }, { status: 404 })
+    if (!customer) return NextResponse.json({ error: "Không tìm thấy khách hàng" }, { status: 404 })
 
-    const hasRelatedData = customer._count.stockOuts > 0 || customer._count.warrantyRecords > 0
-    if (hasRelatedData) {
+    const activeStockOuts = customer.stockOuts.filter((so) => so.status !== "CANCELLED")
+    
+    const { searchParams } = new URL(req.url)
+    const force = searchParams.get("force") === "true"
+
+    if (activeStockOuts.length > 0 && !force) {
       await prisma.customer.update({ where: { id }, data: { isActive: false } })
-    } else {
-      await prisma.customer.delete({ where: { id } })
+
+      await prisma.auditLog.create({
+        data: {
+          userId: session.user.id as string,
+          action: "DELETE",
+          module: "CUSTOMERS",
+          targetId: customer.id,
+          targetName: customer.name,
+        },
+      })
+
+      return NextResponse.json({ 
+        success: true, 
+        mode: "soft",
+        message: `Khách hàng có ${activeStockOuts.length} phiếu xuất kho đang hoạt động nên đã được chuyển sang trạng thái Ẩn để bảo toàn lịch sử.` 
+      })
     }
+
+    // Clean up cancelled/related data and hard delete
+    await prisma.$transaction(async (tx) => {
+      await tx.warrantyRecord.deleteMany({ where: { customerId: id } })
+
+      if (customer.stockOuts.length > 0) {
+        const soIds = customer.stockOuts.map((so) => so.id)
+        await tx.stockOutItem.deleteMany({ where: { stockOutId: { in: soIds } } })
+        await tx.stockOut.deleteMany({ where: { id: { in: soIds } } })
+      }
+
+      await tx.customer.delete({ where: { id } })
+    })
 
     await prisma.auditLog.create({
       data: {
@@ -71,9 +109,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       },
     })
 
-    return NextResponse.json({ success: true, mode: hasRelatedData ? "soft" : "hard" })
+    return NextResponse.json({ 
+      success: true, 
+      mode: "hard",
+      message: "Đã xóa vĩnh viễn khách hàng thành công." 
+    })
   } catch (error) {
     console.error("Customer delete error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Lỗi hệ thống khi xóa khách hàng" }, { status: 500 })
   }
 }

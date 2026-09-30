@@ -175,7 +175,7 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 w-full">
       <div className="flex items-center gap-2">
         <Button
           variant="outline"

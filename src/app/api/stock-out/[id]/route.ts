@@ -257,6 +257,14 @@ export async function DELETE(
             }
           })
         }
+
+        // Delete/void warranty records created for this stock out
+        const itemIds = stockOut.items.map((item) => item.id)
+        if (itemIds.length > 0) {
+          await tx.warrantyRecord.deleteMany({
+            where: { stockOutItemId: { in: itemIds } }
+          })
+        }
       }
 
       await tx.auditLog.create({

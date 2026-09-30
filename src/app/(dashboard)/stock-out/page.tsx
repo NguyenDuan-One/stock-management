@@ -122,7 +122,7 @@ export default function StockOutListPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
-            placeholder="Tìm theo Mã phiếu, Số PO, Khách hàng..."
+            placeholder="Tìm theo Mã phiếu, Số serial (S/N), Số PO, Hợp đồng, Khách hàng..."
             value={search}
             onChange={(e) => {
               setSearch(e.target.value)
@@ -158,6 +158,7 @@ export default function StockOutListPage() {
             <TableRow className="bg-slate-50/50">
               <TableHead>Mã phiếu</TableHead>
               <TableHead>Khách hàng</TableHead>
+              <TableHead>Số Serial (S/N)</TableHead>
               <TableHead>Ngày xuất</TableHead>
               <TableHead>Thông tin PO/HĐ</TableHead>
               <TableHead className="text-right">Tổng doanh thu</TableHead>
@@ -169,14 +170,14 @@ export default function StockOutListPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-32 text-center text-slate-500">
+                <TableCell colSpan={9} className="h-32 text-center text-slate-500">
                   <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" />
                   <span className="mt-2 block text-xs">Đang tải dữ liệu...</span>
                 </TableCell>
               </TableRow>
             ) : stockOuts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-32 text-center text-slate-500">
+                <TableCell colSpan={9} className="h-32 text-center text-slate-500">
                   Không tìm thấy phiếu xuất kho nào.
                 </TableCell>
               </TableRow>
@@ -188,6 +189,31 @@ export default function StockOutListPage() {
                   </TableCell>
                   <TableCell className="font-semibold text-slate-800">
                     {item.customer?.name || "Khách lẻ"}
+                  </TableCell>
+                  <TableCell>
+                    {(() => {
+                      const serials = (item.items || [])
+                        .map((i: any) => i.serialNumber)
+                        .filter(Boolean)
+                      if (serials.length === 0) return <span className="text-slate-400 text-xs">-</span>
+                      if (serials.length === 1) {
+                        return (
+                          <Badge variant="outline" className="font-mono text-xs text-slate-700 bg-slate-50 border-slate-200">
+                            {serials[0]}
+                          </Badge>
+                        )
+                      }
+                      return (
+                        <div className="flex flex-wrap gap-1 max-w-[180px]">
+                          <Badge variant="outline" className="font-mono text-xs text-slate-700 bg-slate-50 border-slate-200">
+                            {serials[0]}
+                          </Badge>
+                          <Badge variant="secondary" className="text-[10px] text-blue-700 bg-blue-50 border-blue-200">
+                            +{serials.length - 1} khác
+                          </Badge>
+                        </div>
+                      )
+                    })()}
                   </TableCell>
                   <TableCell className="text-slate-600">
                     <div className="flex items-center gap-1.5 text-xs">

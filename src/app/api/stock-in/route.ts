@@ -25,6 +25,9 @@ export async function GET(req: NextRequest) {
           { poNumber: { contains: search } },
           { contractNumber: { contains: search } },
           { supplier: { name: { contains: search } } },
+          { items: { some: { serialNumber: { contains: search } } } },
+          { items: { some: { product: { name: { contains: search } } } } },
+          { items: { some: { product: { sku: { contains: search } } } } },
         ]
       })
     }
@@ -35,7 +38,15 @@ export async function GET(req: NextRequest) {
         where: whereClause,
         include: {
           supplier: { select: { id: true, name: true, code: true } },
-          createdBy: { select: { id: true, fullName: true } }
+          createdBy: { select: { id: true, fullName: true } },
+          items: {
+            select: {
+              id: true,
+              serialNumber: true,
+              quantity: true,
+              product: { select: { id: true, name: true, sku: true } }
+            }
+          }
         },
         skip,
         take: limit,
