@@ -597,7 +597,7 @@ export default function NewStockOutPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="po-number">Số đơn hàng (PO)</Label>
                   <Input
@@ -784,7 +784,7 @@ export default function NewStockOutPage() {
                         <span className="text-sm font-semibold text-amber-800">Thông tin bảo hành sản phẩm</span>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="space-y-1.5">
                           <Label htmlFor="item-warranty" className="text-xs font-semibold text-amber-700">
                             Thời hạn bảo hành (tháng) *
@@ -1122,7 +1122,7 @@ export default function NewStockOutPage() {
             <DialogTitle>Thêm nhanh khách hàng</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleQuickCustomerSubmit} className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="quick-customer-name">Tên khách hàng *</Label>
                 <Input
@@ -1143,7 +1143,7 @@ export default function NewStockOutPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="quick-customer-contact">Người liên hệ</Label>
                 <Input

@@ -214,42 +214,52 @@ export default function StockOutDetailPage() {
 
   return (
     <div className="space-y-6 w-full print:block print:max-w-none print:p-0 print:border-none print:shadow-none">
-      <div className="flex items-center gap-2 print:hidden">
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-8 w-8"
-          onClick={() => router.push("/stock-out")}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <PageHeader title="Chi tiết phiếu xuất kho" subtitle={`Mã phiếu: ${stockOut.code}`} />
-        <div className="ml-auto flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            onClick={() => router.push("/stock-out")}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 leading-tight">
+              Chi tiết phiếu xuất kho
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 font-mono mt-0.5">
+              Mã phiếu: <strong className="text-slate-700">{stockOut.code}</strong>
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
           {stockOut.status === "DRAFT" && (
             <Button
-              className="bg-green-600 text-white hover:bg-green-700"
+              size="sm"
+              className="bg-green-600 text-white hover:bg-green-700 h-9"
               onClick={handleApprove}
               disabled={isApproving || isCancelling}
             >
-              {isApproving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+              {isApproving ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1.5 h-4 w-4" />}
               Duyệt phiếu
             </Button>
           )}
           {stockOut.status !== "CANCELLED" && (
-            <Button variant="destructive" onClick={handleCancel} disabled={isCancelling || isApproving}>
-              {isCancelling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash className="mr-2 h-4 w-4" />}
+            <Button variant="destructive" size="sm" onClick={handleCancel} disabled={isCancelling || isApproving} className="h-9">
+              {isCancelling ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Trash className="mr-1.5 h-4 w-4" />}
               Hủy phiếu
             </Button>
           )}
-          <Button variant="outline" onClick={handlePrint}>
-            <Printer className="mr-2 h-4 w-4 text-blue-600" />
+          <Button variant="outline" size="sm" onClick={handlePrint} className="h-9">
+            <Printer className="mr-1.5 h-4 w-4 text-blue-600" />
             In phiếu
           </Button>
         </div>
       </div>
 
       {/* Printable Area */}
-      <div className="print-slip space-y-6 bg-white p-6 md:p-8 rounded-xl border shadow-sm print:p-0 print:shadow-none print:border-none">
+      <div className="print-slip space-y-6 bg-white p-4 sm:p-6 md:p-8 rounded-xl border shadow-sm print:p-0 print:shadow-none print:border-none">
         <div className="print-page-code hidden print:block">Phiếu xuất kho: {stockOut.code}</div>
         <PrintCompanyHeader settings={companySettings} title="Phieu xuat kho" code={stockOut.code} />
 
@@ -260,40 +270,40 @@ export default function StockOutDetailPage() {
         </div>
 
         {/* Info Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6 border-b print:grid-cols-2 print:gap-4 print:pb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 pb-6 border-b print:grid-cols-2 print:gap-4 print:pb-4">
           <div className="space-y-3 rounded-lg border bg-slate-50/60 p-4 print:rounded-none print:bg-white print:p-3">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-slate-800 text-sm tracking-wider uppercase">Thông tin xuất kho</h3>
+              <h3 className="font-bold text-slate-800 text-xs sm:text-sm tracking-wider uppercase">Thông tin xuất kho</h3>
               {stockOut.status !== "CANCELLED" && (
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-blue-600 print:hidden" onClick={openEdit} title="Sửa thông tin">
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600 print:hidden" onClick={openEdit} title="Sửa thông tin">
                   <Edit className="h-4 w-4" />
                 </Button>
               )}
             </div>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Mã phiếu xuất:</span>
-                <span className="font-mono font-bold text-slate-800">{stockOut.code}</span>
+            <div className="space-y-2 text-xs sm:text-sm">
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-slate-500 shrink-0">Mã phiếu xuất:</span>
+                <span className="font-mono font-bold text-slate-800 text-right">{stockOut.code}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Ngày xuất kho:</span>
-                <span className="font-semibold text-slate-700">{formatDate(stockOut.exportDate)}</span>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-slate-500 shrink-0">Ngày xuất kho:</span>
+                <span className="font-semibold text-slate-700 text-right">{formatDate(stockOut.exportDate)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Số đơn hàng (PO):</span>
-                <span className="font-medium text-slate-800">{stockOut.poNumber || "-"}</span>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-slate-500 shrink-0">Số đơn hàng (PO):</span>
+                <span className="font-medium text-slate-800 text-right break-words">{stockOut.poNumber || "-"}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Số hợp đồng:</span>
-                <span className="font-medium text-slate-800">{stockOut.contractNumber || "-"}</span>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-slate-500 shrink-0">Số hợp đồng:</span>
+                <span className="font-medium text-slate-800 text-right break-words">{stockOut.contractNumber || "-"}</span>
               </div>
             </div>
           </div>
 
           <div className="space-y-3 rounded-lg border bg-slate-50/60 p-4 print:rounded-none print:bg-white print:p-3">
-            <h3 className="font-bold text-slate-800 text-sm tracking-wider uppercase">Khách hàng</h3>
-            <div className="space-y-2 text-sm">
-              <div className="font-bold text-slate-800">{stockOut.customer?.name || "Khách lẻ"}</div>
+            <h3 className="font-bold text-slate-800 text-xs sm:text-sm tracking-wider uppercase">Khách hàng</h3>
+            <div className="space-y-2 text-xs sm:text-sm">
+              <div className="font-bold text-slate-800 break-words">{stockOut.customer?.name || "Khách lẻ"}</div>
               {stockOut.customer?.code && (
                 <div className="text-xs text-slate-500">Mã khách hàng: {stockOut.customer.code}</div>
               )}
@@ -301,30 +311,32 @@ export default function StockOutDetailPage() {
                 <div className="text-xs text-slate-600">SĐT: {stockOut.customer.phone}</div>
               )}
               {stockOut.customer?.email && (
-                <div className="text-xs text-slate-600">Email: {stockOut.customer.email}</div>
+                <div className="text-xs text-slate-600 break-words">Email: {stockOut.customer.email}</div>
               )}
               {stockOut.customer?.address && (
-                <div className="text-xs text-slate-600">Địa chỉ: {stockOut.customer.address}</div>
+                <div className="text-xs text-slate-600 break-words">Địa chỉ: {stockOut.customer.address}</div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Items Table */}
+        {/* Items Section */}
         <div className="space-y-4 print:space-y-2">
-          <h3 className="font-bold text-slate-800 text-sm tracking-wider uppercase print:text-xs">Danh sách sản phẩm xuất</h3>
-          <div className="rounded-md border overflow-hidden print:hidden">
+          <h3 className="font-bold text-slate-800 text-xs sm:text-sm tracking-wider uppercase print:text-xs">Danh sách sản phẩm xuất</h3>
+          
+          {/* Desktop Table */}
+          <div className="rounded-md border overflow-x-auto hidden md:block print:hidden">
             <Table>
               <TableHeader className="bg-slate-50">
                 <TableRow>
-                  <TableHead className="w-[80px]">STT</TableHead>
-                  <TableHead>Tên sản phẩm</TableHead>
-                  <TableHead>Mã SKU</TableHead>
-                  <TableHead>Số Serial (S/N)</TableHead>
-                  <TableHead className="text-right">Số lượng</TableHead>
-                  <TableHead className="text-right">Đơn giá bán</TableHead>
-                  <TableHead className="text-right">Thành tiền</TableHead>
-                  <TableHead className="text-center w-[120px]">Thời hạn BH</TableHead>
+                  <TableHead className="w-[60px]">STT</TableHead>
+                  <TableHead className="min-w-[200px]">Tên sản phẩm</TableHead>
+                  <TableHead className="min-w-[120px]">Mã SKU</TableHead>
+                  <TableHead className="min-w-[160px]">Số Serial (S/N)</TableHead>
+                  <TableHead className="min-w-[100px] text-right">Số lượng</TableHead>
+                  <TableHead className="min-w-[120px] text-right">Đơn giá bán</TableHead>
+                  <TableHead className="min-w-[130px] text-right">Thành tiền</TableHead>
+                  <TableHead className="text-center w-[130px] min-w-[130px]">Thời hạn BH</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -352,6 +364,54 @@ export default function StockOutDetailPage() {
               </TableBody>
             </Table>
           </div>
+
+          {/* Mobile Card List */}
+          <div className="space-y-3 md:hidden print:hidden">
+            {paginatedItems.map((item: any, idx: number) => (
+              <div key={item.id} className="rounded-lg border bg-slate-50/50 p-3.5 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <span className="font-semibold text-slate-900 text-sm block leading-snug break-words">
+                      {item.product?.name}
+                    </span>
+                    <span className="font-mono text-xs text-slate-500">SKU: {item.product?.sku}</span>
+                  </div>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700 shrink-0">
+                    #{(itemPage - 1) * itemLimit + idx + 1}
+                  </span>
+                </div>
+
+                <div className="space-y-1.5 text-xs pt-1 border-t border-slate-200">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-slate-500 shrink-0">Số Serial:</span>
+                    <span className="font-mono font-medium text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200 break-all text-right">
+                      {item.serialNumber || "-"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-slate-500">Số lượng:</span>
+                    <span className="font-medium text-slate-800">{item.quantity} {item.product?.unit || "cái"}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-slate-500">Đơn giá bán:</span>
+                    <span className="text-slate-700">{formatCurrency(item.unitPrice)}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-200 font-medium">
+                    <span className="text-slate-800">Thành tiền:</span>
+                    <span className="font-bold text-blue-600">{formatCurrency(item.quantity * item.unitPrice)}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 text-slate-500 text-[11px]">
+                    <span>Thời hạn BH:</span>
+                    <span className="font-medium text-slate-700">
+                      {item.warrantyMonths ? `${item.warrantyMonths} tháng` : "Không bảo hành"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Print Table */}
           <div className="hidden print:block">
             <Table>
               <TableHeader className="bg-slate-50">
@@ -411,15 +471,15 @@ export default function StockOutDetailPage() {
             </div>
           </div>
 
-          <div className="space-y-4 flex flex-col justify-between items-end">
+          <div className="space-y-4 flex flex-col justify-between items-start md:items-end">
             <div className="w-full space-y-2 text-sm border-t pt-4 md:border-none md:pt-0">
-              <div className="flex justify-between items-center py-1">
+              <div className="flex justify-between items-center py-1 gap-2">
                 <span className="text-slate-500 font-medium">Tổng doanh thu xuất:</span>
-                <span className="font-bold text-2xl text-blue-700 print:text-lg print:text-slate-900">{formatCurrency(stockOut.totalAmount)}</span>
+                <span className="font-bold text-xl sm:text-2xl text-blue-700 print:text-lg print:text-slate-900">{formatCurrency(stockOut.totalAmount)}</span>
               </div>
             </div>
 
-            <div className="text-right text-xs text-slate-400 space-y-1 print:mt-12">
+            <div className="text-left md:text-right text-xs text-slate-400 space-y-1 print:mt-12 w-full">
               <div>Được ghi nhận bởi: <span className="font-semibold text-slate-600">{stockOut.createdBy?.fullName || stockOut.createdBy?.username}</span></div>
               <div>Vào lúc: {formatDate(stockOut.createdAt)}</div>
             </div>

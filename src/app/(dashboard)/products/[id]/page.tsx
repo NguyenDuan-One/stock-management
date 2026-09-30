@@ -273,7 +273,7 @@ export default function ProductDetailPage() {
                   <h4 className="text-sm font-medium text-slate-500">Tên sản phẩm</h4>
                   <p className="text-slate-800 font-semibold text-lg mt-1">{product.name}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <h4 className="text-sm font-medium text-slate-500">Mã SKU</h4>
                     <p className="text-slate-800 font-medium mt-1">{product.sku}</p>
@@ -306,7 +306,7 @@ export default function ProductDetailPage() {
                     {product.description || "Không có mô tả sản phẩm."}
                   </p>
                 </div>
-                <div className="grid grid-cols-2 gap-4 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-2">
                   <div>
                     <h4 className="text-sm font-medium text-slate-500">Ngày tạo</h4>
                     <p className="text-slate-600 text-sm mt-1">{formatDate(product.createdAt)}</p>

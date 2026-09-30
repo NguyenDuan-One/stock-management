@@ -35,7 +35,7 @@ export function TablePagination({
         <span className="font-medium text-slate-700">{end}</span> trong{" "}
         <span className="font-medium text-slate-700">{total}</span> {itemLabel}
       </p>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center justify-between sm:justify-end gap-2">
         <Button
           variant="outline"
           size="sm"
@@ -44,24 +44,29 @@ export function TablePagination({
         >
           Trước
         </Button>
-        {pages.map((item, index) => {
-          const previous = pages[index - 1]
-          const showGap = previous && item - previous > 1
+        <div className="flex items-center gap-1 sm:gap-2">
+          <span className="sm:hidden text-xs text-slate-600 px-1 font-medium">
+            {page}/{totalPages}
+          </span>
+          {pages.map((item, index) => {
+            const previous = pages[index - 1]
+            const showGap = previous && item - previous > 1
 
-          return (
-            <div key={item} className="flex items-center gap-2">
-              {showGap && <span className="px-1 text-sm text-slate-400">...</span>}
-              <Button
-                variant={page === item ? "default" : "outline"}
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={() => onPageChange(item)}
-              >
-                {item}
-              </Button>
-            </div>
-          )
-        })}
+            return (
+              <div key={item} className="hidden sm:flex items-center gap-1 sm:gap-2">
+                {showGap && <span className="px-1 text-sm text-slate-400">...</span>}
+                <Button
+                  variant={page === item ? "default" : "outline"}
+                  size="sm"
+                  className="h-8 w-8 p-0 text-xs sm:text-sm"
+                  onClick={() => onPageChange(item)}
+                >
+                  {item}
+                </Button>
+              </div>
+            )
+          })}
+        </div>
         <Button
           variant="outline"
           size="sm"

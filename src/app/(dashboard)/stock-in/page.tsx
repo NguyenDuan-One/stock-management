@@ -129,109 +129,202 @@ export default function StockInListPage() {
       </div>
 
       <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-slate-50/50">
-              <TableHead>Mã phiếu</TableHead>
-              <TableHead>Nhà cung cấp</TableHead>
-              <TableHead>Số Serial (S/N)</TableHead>
-              <TableHead>Ngày nhập</TableHead>
-              <TableHead>Thông tin PO/HĐ</TableHead>
-              <TableHead className="text-right">Tổng tiền</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead>Người tạo</TableHead>
-              <TableHead className="w-[100px] text-right">Thao tác</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={9} className="h-32 text-center text-slate-500">
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" />
-                  <span className="mt-2 block text-xs">Đang tải dữ liệu...</span>
-                </TableCell>
+        {/* Desktop Table View */}
+        <div className="hidden md:block">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50/50">
+                <TableHead className="w-[120px] min-w-[120px]">Mã phiếu</TableHead>
+                <TableHead className="min-w-[200px]">Nhà cung cấp</TableHead>
+                <TableHead className="min-w-[180px]">Số Serial (S/N)</TableHead>
+                <TableHead className="min-w-[130px]">Ngày nhập</TableHead>
+                <TableHead className="min-w-[160px]">Thông tin PO/HĐ</TableHead>
+                <TableHead className="min-w-[140px] text-right">Tổng tiền</TableHead>
+                <TableHead className="min-w-[130px]">Trạng thái</TableHead>
+                <TableHead className="min-w-[130px]">Người tạo</TableHead>
+                <TableHead className="w-[110px] min-w-[110px] text-right">Thao tác</TableHead>
               </TableRow>
-            ) : stockIns.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={9} className="h-32 text-center text-slate-500">
-                  Không tìm thấy phiếu nhập kho nào.
-                </TableCell>
-              </TableRow>
-            ) : (
-              stockIns.map((item) => (
-                <TableRow key={item.id} className="hover:bg-slate-50/50">
-                  <TableCell className="font-mono font-bold text-blue-600">
-                    {item.code}
-                  </TableCell>
-                  <TableCell className="font-semibold text-slate-800">
-                    {item.supplier?.name || "Khác"}
-                  </TableCell>
-                  <TableCell>
-                    {(() => {
-                      const serials = (item.items || [])
-                        .map((i: any) => i.serialNumber)
-                        .filter(Boolean)
-                      if (serials.length === 0) return <span className="text-slate-400 text-xs">-</span>
-                      if (serials.length === 1) {
-                        return (
-                          <Badge variant="outline" className="font-mono text-xs text-slate-700 bg-slate-50 border-slate-200">
-                            {serials[0]}
-                          </Badge>
-                        )
-                      }
-                      return (
-                        <div className="flex flex-wrap gap-1 max-w-[180px]">
-                          <Badge variant="outline" className="font-mono text-xs text-slate-700 bg-slate-50 border-slate-200">
-                            {serials[0]}
-                          </Badge>
-                          <Badge variant="secondary" className="text-[10px] text-blue-700 bg-blue-50 border-blue-200">
-                            +{serials.length - 1} khác
-                          </Badge>
-                        </div>
-                      )
-                    })()}
-                  </TableCell>
-                  <TableCell className="text-slate-600">
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                      <span>{formatDate(item.importDate)}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-slate-600 text-xs space-y-0.5">
-                    {item.poNumber && (
-                      <div>
-                        <span className="text-slate-400">PO:</span> {item.poNumber}
-                      </div>
-                    )}
-                    {item.contractNumber && (
-                      <div>
-                        <span className="text-slate-400">HĐ:</span> {item.contractNumber}
-                      </div>
-                    )}
-                    {!item.poNumber && !item.contractNumber && "-"}
-                  </TableCell>
-                  <TableCell className="text-right font-bold text-slate-900">
-                    {formatCurrency(item.totalAmount)}
-                  </TableCell>
-                  <TableCell>{getStatusBadge(item.status)}</TableCell>
-                  <TableCell className="text-slate-700 text-sm">
-                    {item.createdBy?.fullName || item.createdBy?.username || "-"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-blue-600 hover:text-blue-700"
-                      onClick={() => router.push(`/stock-in/${item.id}`)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="h-32 text-center text-slate-500">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" />
+                    <span className="mt-2 block text-xs">Đang tải dữ liệu...</span>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : stockIns.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="h-32 text-center text-slate-500">
+                    Không tìm thấy phiếu nhập kho nào.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                stockIns.map((item) => (
+                  <TableRow key={item.id} className="hover:bg-slate-50/50">
+                    <TableCell className="font-mono font-bold text-blue-600">
+                      {item.code}
+                    </TableCell>
+                    <TableCell className="font-semibold text-slate-800">
+                      {item.supplier?.name || "Khác"}
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const serials = (item.items || [])
+                          .map((i: any) => i.serialNumber)
+                          .filter(Boolean)
+                        if (serials.length === 0) return <span className="text-slate-400 text-xs">-</span>
+                        if (serials.length === 1) {
+                          return (
+                            <Badge variant="outline" className="font-mono text-xs text-slate-700 bg-slate-50 border-slate-200">
+                              {serials[0]}
+                            </Badge>
+                          )
+                        }
+                        return (
+                          <div className="flex flex-wrap gap-1 max-w-[180px]">
+                            <Badge variant="outline" className="font-mono text-xs text-slate-700 bg-slate-50 border-slate-200">
+                              {serials[0]}
+                            </Badge>
+                            <Badge variant="secondary" className="text-[10px] text-blue-700 bg-blue-50 border-blue-200">
+                              +{serials.length - 1} khác
+                            </Badge>
+                          </div>
+                        )
+                      })()}
+                    </TableCell>
+                    <TableCell className="text-slate-600">
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                        <span>{formatDate(item.importDate)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-slate-600 text-xs space-y-0.5">
+                      {item.poNumber && (
+                        <div>
+                          <span className="text-slate-400">PO:</span> {item.poNumber}
+                        </div>
+                      )}
+                      {item.contractNumber && (
+                        <div>
+                          <span className="text-slate-400">HĐ:</span> {item.contractNumber}
+                        </div>
+                      )}
+                      {!item.poNumber && !item.contractNumber && "-"}
+                    </TableCell>
+                    <TableCell className="text-right font-bold text-slate-900">
+                      {formatCurrency(item.totalAmount)}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(item.status)}</TableCell>
+                    <TableCell className="text-slate-700 text-sm">
+                      {item.createdBy?.fullName || item.createdBy?.username || "-"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-blue-600 hover:text-blue-700"
+                        onClick={() => router.push(`/stock-in/${item.id}`)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Mobile Card List View */}
+        <div className="divide-y divide-slate-100 md:hidden">
+          {isLoading ? (
+            <div className="p-8 text-center text-slate-500">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" />
+              <span className="mt-2 block text-xs">Đang tải dữ liệu...</span>
+            </div>
+          ) : stockIns.length === 0 ? (
+            <div className="p-8 text-center text-slate-500 text-sm">
+              Không tìm thấy phiếu nhập kho nào.
+            </div>
+          ) : (
+            stockIns.map((item) => {
+              const serials = (item.items || [])
+                .map((i: any) => i.serialNumber)
+                .filter(Boolean)
+              return (
+                <div key={item.id} className="p-4 space-y-2.5 bg-white hover:bg-slate-50/70 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono font-bold text-blue-600 text-sm">{item.code}</span>
+                    {getStatusBadge(item.status)}
+                  </div>
+                  
+                  <div className="space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Nhà cung cấp:</span>
+                      <span className="font-semibold text-slate-800 text-right max-w-[200px] truncate">
+                        {item.supplier?.name || "Khác"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Ngày nhập:</span>
+                      <span className="text-slate-700 font-medium">{formatDate(item.importDate)}</span>
+                    </div>
+
+                    {item.poNumber && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400">Số PO:</span>
+                        <span className="font-mono font-medium text-slate-800 text-right">{item.poNumber}</span>
+                      </div>
+                    )}
+
+                    {item.contractNumber && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400">Số HĐ:</span>
+                        <span className="font-mono font-medium text-slate-800 text-right">{item.contractNumber}</span>
+                      </div>
+                    )}
+
+                    {serials.length > 0 && (
+                      <div className="pt-0.5">
+                        <span className="text-slate-400 block mb-1">Số Serial (S/N):</span>
+                        <div className="flex flex-wrap gap-1">
+                          {serials.slice(0, 3).map((s: string, idx: number) => (
+                            <Badge key={idx} variant="outline" className="font-mono text-[11px] text-slate-700 bg-slate-50 border-slate-200">
+                              {s}
+                            </Badge>
+                          ))}
+                          {serials.length > 3 && (
+                            <Badge variant="secondary" className="text-[10px] text-blue-700 bg-blue-50 border-blue-200">
+                              +{serials.length - 3} khác
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block leading-tight">Tổng tiền</span>
+                      <span className="font-bold text-sm text-slate-900">{formatCurrency(item.totalAmount)}</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 gap-1.5 text-xs font-medium text-blue-600 border-blue-200 hover:bg-blue-50"
+                      onClick={() => router.push(`/stock-in/${item.id}`)}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      Chi tiết
+                    </Button>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
         <TablePagination
           page={page}
           limit={limit}

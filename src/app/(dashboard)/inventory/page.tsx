@@ -141,14 +141,14 @@ export default function InventoryPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-slate-50/50">
-              <TableHead>Sản phẩm</TableHead>
-              <TableHead>Danh mục</TableHead>
-              <TableHead>Phương pháp giá</TableHead>
-              <TableHead className="text-right">Tồn kho thực tế</TableHead>
-              <TableHead className="text-right">Tồn tối thiểu</TableHead>
-              <TableHead className="text-right">Đơn giá vốn</TableHead>
-              <TableHead className="text-right">Tổng giá trị tồn</TableHead>
-              <TableHead>Trạng thái</TableHead>
+              <TableHead className="min-w-[240px]">Sản phẩm</TableHead>
+              <TableHead className="min-w-[150px]">Danh mục</TableHead>
+              <TableHead className="min-w-[160px]">Phương pháp giá</TableHead>
+              <TableHead className="min-w-[140px] text-right">Tồn kho thực tế</TableHead>
+              <TableHead className="min-w-[120px] text-right">Tồn tối thiểu</TableHead>
+              <TableHead className="min-w-[130px] text-right">Đơn giá vốn</TableHead>
+              <TableHead className="min-w-[150px] text-right">Tổng giá trị tồn</TableHead>
+              <TableHead className="min-w-[130px]">Trạng thái</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

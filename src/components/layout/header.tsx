@@ -56,17 +56,17 @@ export function Header({ user, onMenuClick }: HeaderProps) {
       </Button>
 
       {/* Breadcrumb */}
-      <div className="flex flex-1 items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/" className="hover:text-foreground transition-colors">
+      <div className="flex flex-1 items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground overflow-hidden mr-2">
+        <Link href="/" className="hover:text-foreground transition-colors shrink-0">
           Home
         </Link>
         {breadcrumbs.map((crumb, index) => (
           <React.Fragment key={crumb.href}>
-            <span>/</span>
+            <span className="shrink-0 text-slate-300">/</span>
             {index === breadcrumbs.length - 1 ? (
-              <span className="font-medium text-foreground">{crumb.label}</span>
+              <span className="font-medium text-foreground truncate">{crumb.label}</span>
             ) : (
-              <Link href={crumb.href} className="hover:text-foreground transition-colors">
+              <Link href={crumb.href} className="hover:text-foreground transition-colors truncate hidden sm:inline">
                 {crumb.label}
               </Link>
             )}

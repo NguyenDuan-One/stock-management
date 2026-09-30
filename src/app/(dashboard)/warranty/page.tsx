@@ -130,70 +130,134 @@ export default function WarrantyPage() {
 
         <TabsContent value={status} className="mt-4">
           <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-50/50">
-                  <TableHead>Sản phẩm</TableHead>
-                  <TableHead>Số Serial (S/N)</TableHead>
-                  <TableHead>Khách hàng</TableHead>
-                  <TableHead>Số PO</TableHead>
-                  <TableHead>Số Hợp đồng</TableHead>
-                  <TableHead>Ngày xuất bán</TableHead>
-                  <TableHead>Hạn bảo hành</TableHead>
-                  <TableHead>Ngày hết hạn</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="h-32 text-center text-slate-500">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" />
-                      <span className="mt-2 block text-xs">Đang tải dữ liệu...</span>
-                    </TableCell>
+            {/* Desktop Table View */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50/50">
+                    <TableHead className="min-w-[220px]">Sản phẩm</TableHead>
+                    <TableHead className="min-w-[170px]">Số Serial (S/N)</TableHead>
+                    <TableHead className="min-w-[200px]">Khách hàng</TableHead>
+                    <TableHead className="min-w-[140px]">Số PO</TableHead>
+                    <TableHead className="min-w-[140px]">Số Hợp đồng</TableHead>
+                    <TableHead className="min-w-[130px]">Ngày xuất bán</TableHead>
+                    <TableHead className="min-w-[130px]">Hạn bảo hành</TableHead>
+                    <TableHead className="min-w-[130px]">Ngày hết hạn</TableHead>
+                    <TableHead className="min-w-[130px]">Trạng thái</TableHead>
                   </TableRow>
-                ) : warranties.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="h-32 text-center text-slate-500">
-                      Không tìm thấy hồ sơ bảo hành nào.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  warranties.map((item) => (
-                    <TableRow key={item.id} className="hover:bg-slate-50/50">
-                      <TableCell>
-                        <div className="font-semibold text-slate-900">{item.product?.name}</div>
-                        <div className="text-xs text-slate-400 mt-0.5">SKU: {item.product?.sku}</div>
-                      </TableCell>
-                      <TableCell className="font-mono font-medium text-slate-800">
-                        {item.serialNumber || "-"}
-                      </TableCell>
-                      <TableCell className="font-medium text-slate-700">
-                        {item.customer?.name}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs text-slate-700">
-                        {item.stockOutItem?.stockOut?.poNumber || "-"}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs text-slate-700">
-                        {item.stockOutItem?.stockOut?.contractNumber || "-"}
-                      </TableCell>
-                      <TableCell className="text-slate-600 text-sm">
-                        {formatDate(item.startDate)}
-                      </TableCell>
-                      <TableCell className="text-slate-600 text-sm font-semibold">
-                        {item.warrantyMonths} tháng
-                      </TableCell>
-                      <TableCell className="text-slate-800 text-sm font-medium">
-                        {formatDate(item.endDate)}
-                      </TableCell>
-                      <TableCell>
-                        {getWarrantyStatusBadge(item.endDate, item.status)}
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="h-32 text-center text-slate-500">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" />
+                        <span className="mt-2 block text-xs">Đang tải dữ liệu...</span>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : warranties.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="h-32 text-center text-slate-500">
+                        Không tìm thấy hồ sơ bảo hành nào.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    warranties.map((item) => (
+                      <TableRow key={item.id} className="hover:bg-slate-50/50">
+                        <TableCell>
+                          <div className="font-semibold text-slate-900">{item.product?.name}</div>
+                          <div className="text-xs text-slate-400 mt-0.5">SKU: {item.product?.sku}</div>
+                        </TableCell>
+                        <TableCell className="font-mono font-medium text-slate-800">
+                          {item.serialNumber || "-"}
+                        </TableCell>
+                        <TableCell className="font-medium text-slate-700">
+                          {item.customer?.name}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-slate-700">
+                          {item.stockOutItem?.stockOut?.poNumber || "-"}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-slate-700">
+                          {item.stockOutItem?.stockOut?.contractNumber || "-"}
+                        </TableCell>
+                        <TableCell className="text-slate-600 text-sm">
+                          {formatDate(item.startDate)}
+                        </TableCell>
+                        <TableCell className="text-slate-600 text-sm font-semibold">
+                          {item.warrantyMonths} tháng
+                        </TableCell>
+                        <TableCell className="text-slate-800 text-sm font-medium">
+                          {formatDate(item.endDate)}
+                        </TableCell>
+                        <TableCell>
+                          {getWarrantyStatusBadge(item.endDate, item.status)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile Card List View */}
+            <div className="divide-y divide-slate-100 md:hidden">
+              {isLoading ? (
+                <div className="p-8 text-center text-slate-500">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" />
+                  <span className="mt-2 block text-xs">Đang tải dữ liệu...</span>
+                </div>
+              ) : warranties.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 text-sm">
+                  Không tìm thấy hồ sơ bảo hành nào.
+                </div>
+              ) : (
+                warranties.map((item) => (
+                  <div key={item.id} className="p-4 space-y-2.5 bg-white hover:bg-slate-50/70 transition-colors">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <span className="font-semibold text-slate-900 text-sm block leading-tight">{item.product?.name}</span>
+                        <span className="text-[11px] text-slate-400">SKU: {item.product?.sku}</span>
+                      </div>
+                      {getWarrantyStatusBadge(item.endDate, item.status)}
+                    </div>
+
+                    <div className="space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400">Số Serial (S/N):</span>
+                        <span className="font-mono font-medium text-slate-800 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                          {item.serialNumber || "-"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400">Khách hàng:</span>
+                        <span className="font-medium text-slate-700 text-right max-w-[200px] truncate">
+                          {item.customer?.name || "-"}
+                        </span>
+                      </div>
+
+                      {item.stockOutItem?.stockOut?.poNumber && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Số PO:</span>
+                          <span className="font-mono font-medium text-slate-800 text-right">{item.stockOutItem.stockOut.poNumber}</span>
+                        </div>
+                      )}
+
+                      {item.stockOutItem?.stockOut?.contractNumber && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Số HĐ:</span>
+                          <span className="font-mono font-medium text-slate-800 text-right">{item.stockOutItem.stockOut.contractNumber}</span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-slate-500">
+                        <span>Thời hạn: <strong className="text-slate-700">{item.warrantyMonths} tháng</strong></span>
+                        <span>Hết hạn: <strong className="text-slate-900">{formatDate(item.endDate)}</strong></span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
             <TablePagination
               page={page}
               limit={limit}

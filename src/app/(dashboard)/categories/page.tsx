@@ -155,12 +155,12 @@ export default function CategoriesPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-slate-50/50">
-              <TableHead className="w-[80px]">STT</TableHead>
-              <TableHead>Mã danh mục</TableHead>
-              <TableHead>Tên danh mục</TableHead>
-              <TableHead>Mô tả</TableHead>
-              <TableHead className="text-right">Số sản phẩm</TableHead>
-              <TableHead className="w-[120px] text-right">Thao tác</TableHead>
+              <TableHead className="w-[70px]">STT</TableHead>
+              <TableHead className="min-w-[140px]">Mã danh mục</TableHead>
+              <TableHead className="min-w-[220px]">Tên danh mục</TableHead>
+              <TableHead className="min-w-[260px]">Mô tả</TableHead>
+              <TableHead className="min-w-[130px] text-right">Số sản phẩm</TableHead>
+              <TableHead className="w-[110px] min-w-[110px] text-right">Thao tác</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -185,23 +185,25 @@ export default function CategoriesPage() {
                   <TableCell className="font-semibold text-slate-800">{cat.name}</TableCell>
                   <TableCell className="text-slate-500 max-w-xs truncate">{cat.description || "-"}</TableCell>
                   <TableCell className="text-right font-medium text-blue-600">{cat._count?.products ?? 0}</TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-blue-600 hover:text-blue-700"
-                      onClick={() => handleOpenEdit(cat)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-red-600 hover:text-red-700"
-                      onClick={() => setDeletingCategory(cat)}
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-blue-600 hover:text-blue-700"
+                        onClick={() => handleOpenEdit(cat)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-600 hover:text-red-700"
+                        onClick={() => setDeletingCategory(cat)}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

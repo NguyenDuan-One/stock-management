@@ -197,67 +197,115 @@ export default function CustomersPage() {
       </div>
 
       <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-slate-50/50">
-              <TableHead className="w-[80px]">STT</TableHead>
-              <TableHead>Mã KH</TableHead>
-              <TableHead>Tên khách hàng</TableHead>
-              <TableHead>Người liên hệ</TableHead>
-              <TableHead>Thông tin liên lạc</TableHead>
-              <TableHead>Mã số thuế</TableHead>
-              <TableHead className="w-[120px] text-right">Thao tác</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center text-slate-500">
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" />
-                  <span className="mt-2 block text-xs">Đang tải dữ liệu...</span>
-                </TableCell>
+        {/* Desktop Table View */}
+        <div className="hidden md:block">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50/50">
+                <TableHead className="w-[70px] min-w-[70px]">STT</TableHead>
+                <TableHead className="w-[120px] min-w-[120px]">Mã KH</TableHead>
+                <TableHead className="min-w-[240px]">Tên khách hàng</TableHead>
+                <TableHead className="min-w-[160px]">Người liên hệ</TableHead>
+                <TableHead className="min-w-[200px]">Thông tin liên lạc</TableHead>
+                <TableHead className="min-w-[130px]">Mã số thuế</TableHead>
+                <TableHead className="w-[110px] min-w-[110px] text-right">Thao tác</TableHead>
               </TableRow>
-            ) : customers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center text-slate-500">
-                  Chưa có thông tin khách hàng nào.
-                </TableCell>
-              </TableRow>
-            ) : (
-              customers.map((cust, idx) => (
-                <TableRow key={cust.id} className="hover:bg-slate-50/50">
-                  <TableCell className="font-medium">{(page - 1) * limit + idx + 1}</TableCell>
-                  <TableCell className="font-mono font-medium text-slate-900">{cust.code}</TableCell>
-                  <TableCell>
-                    <div className="font-semibold text-slate-800">{cust.name}</div>
-                    {cust.address && (
-                      <div className="text-xs text-slate-400 mt-1 flex items-center gap-1">
-                        <MapPin className="h-3 w-3 shrink-0" />
-                        <span className="truncate max-w-xs">{cust.address}</span>
-                      </div>
-                    )}
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-32 text-center text-slate-500">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" />
+                    <span className="mt-2 block text-xs">Đang tải dữ liệu...</span>
                   </TableCell>
-                  <TableCell className="text-slate-700 font-medium">{cust.contactName || "-"}</TableCell>
-                  <TableCell className="text-slate-600 space-y-1">
-                    {cust.phone && (
-                      <div className="text-xs flex items-center gap-1.5">
-                        <Phone className="h-3.5 w-3.5 text-slate-400" />
-                        <span>{cust.phone}</span>
-                      </div>
-                    )}
-                    {cust.email && (
-                      <div className="text-xs flex items-center gap-1.5">
-                        <Mail className="h-3.5 w-3.5 text-slate-400" />
-                        <span>{cust.email}</span>
-                      </div>
-                    )}
+                </TableRow>
+              ) : customers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-32 text-center text-slate-500">
+                    Chưa có thông tin khách hàng nào.
                   </TableCell>
-                  <TableCell className="font-mono text-xs">{cust.taxCode || "-"}</TableCell>
-                  <TableCell className="text-right space-x-2">
+                </TableRow>
+              ) : (
+                customers.map((cust, idx) => (
+                  <TableRow key={cust.id} className="hover:bg-slate-50/50">
+                    <TableCell className="font-medium">{(page - 1) * limit + idx + 1}</TableCell>
+                    <TableCell className="font-mono font-medium text-slate-900">{cust.code}</TableCell>
+                    <TableCell>
+                      <div className="font-semibold text-slate-800">{cust.name}</div>
+                      {cust.address && (
+                        <div className="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                          <MapPin className="h-3 w-3 shrink-0" />
+                          <span className="truncate max-w-sm">{cust.address}</span>
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-slate-700 font-medium">{cust.contactName || "-"}</TableCell>
+                    <TableCell className="text-slate-600 space-y-1">
+                      {cust.phone && (
+                        <div className="text-xs flex items-center gap-1.5">
+                          <Phone className="h-3.5 w-3.5 text-slate-400" />
+                          <span>{cust.phone}</span>
+                        </div>
+                      )}
+                      {cust.email && (
+                        <div className="text-xs flex items-center gap-1.5">
+                          <Mail className="h-3.5 w-3.5 text-slate-400" />
+                          <span>{cust.email}</span>
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{cust.taxCode || "-"}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={() => handleOpenEdit(cust)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => setDeletingCustomer(cust)}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Mobile Card List View */}
+        <div className="divide-y divide-slate-100 md:hidden">
+          {isLoading ? (
+            <div className="p-8 text-center text-slate-500">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" />
+              <span className="mt-2 block text-xs">Đang tải dữ liệu...</span>
+            </div>
+          ) : customers.length === 0 ? (
+            <div className="p-8 text-center text-slate-500 text-sm">
+              Chưa có thông tin khách hàng nào.
+            </div>
+          ) : (
+            customers.map((cust) => (
+              <div key={cust.id} className="p-4 space-y-2.5 bg-white hover:bg-slate-50/70 transition-colors">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <span className="font-semibold text-slate-900 text-sm block truncate">{cust.name}</span>
+                    <span className="font-mono text-xs text-blue-600 font-medium">Mã: {cust.code}</span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-blue-600 hover:text-blue-700"
+                      className="h-8 w-8 text-blue-600 hover:bg-blue-50"
                       onClick={() => handleOpenEdit(cust)}
                     >
                       <Edit className="h-4 w-4" />
@@ -265,17 +313,44 @@ export default function CustomersPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-red-600 hover:text-red-700"
+                      className="h-8 w-8 text-red-600 hover:bg-red-50"
                       onClick={() => setDeletingCustomer(cust)}
                     >
                       <Trash className="h-4 w-4" />
                     </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                  </div>
+                </div>
+
+                <div className="space-y-1 text-xs text-slate-600">
+                  {cust.contactName && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Người liên hệ:</span>
+                      <span className="font-medium text-slate-800">{cust.contactName}</span>
+                    </div>
+                  )}
+                  {cust.phone && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Điện thoại:</span>
+                      <span className="font-medium text-slate-800">{cust.phone}</span>
+                    </div>
+                  )}
+                  {cust.email && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Email:</span>
+                      <span className="text-slate-700">{cust.email}</span>
+                    </div>
+                  )}
+                  {cust.address && (
+                    <div className="pt-1 text-[11px] text-slate-500 flex items-start gap-1">
+                      <MapPin className="h-3 w-3 shrink-0 mt-0.5 text-slate-400" />
+                      <span>{cust.address}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
         <TablePagination
           page={page}
           limit={limit}
@@ -292,7 +367,7 @@ export default function CustomersPage() {
             <DialogTitle>{editingCustomer ? "Cập nhật thông tin khách hàng" : "Tạo mới khách hàng"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="cust-code">Mã khách hàng *</Label>
                 <Input
@@ -351,7 +426,7 @@ export default function CustomersPage() {
                   onChange={(e) => setTaxCode(e.target.value)}
                 />
               </div>
-              <div className="space-y-2 col-span-2">
+              <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="cust-address">Địa chỉ</Label>
                 <Input
                   id="cust-address"
@@ -360,7 +435,7 @@ export default function CustomersPage() {
                   onChange={(e) => setAddress(e.target.value)}
                 />
               </div>
-              <div className="space-y-2 col-span-2">
+              <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="cust-notes">Ghi chú</Label>
                 <Textarea
                   id="cust-notes"

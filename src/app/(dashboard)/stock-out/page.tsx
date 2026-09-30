@@ -153,128 +153,239 @@ export default function StockOutListPage() {
       </div>
 
       <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-slate-50/50">
-              <TableHead>Mã phiếu</TableHead>
-              <TableHead>Khách hàng</TableHead>
-              <TableHead>Số Serial (S/N)</TableHead>
-              <TableHead>Ngày xuất</TableHead>
-              <TableHead>Thông tin PO/HĐ</TableHead>
-              <TableHead className="text-right">Tổng doanh thu</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead>Người lập</TableHead>
-              <TableHead className="w-[100px] text-right">Thao tác</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={9} className="h-32 text-center text-slate-500">
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" />
-                  <span className="mt-2 block text-xs">Đang tải dữ liệu...</span>
-                </TableCell>
+        {/* Desktop Table View */}
+        <div className="hidden md:block">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50/50">
+                <TableHead className="w-[120px] min-w-[120px]">Mã phiếu</TableHead>
+                <TableHead className="min-w-[200px]">Khách hàng</TableHead>
+                <TableHead className="min-w-[180px]">Số Serial (S/N)</TableHead>
+                <TableHead className="min-w-[130px]">Ngày xuất</TableHead>
+                <TableHead className="min-w-[160px]">Thông tin PO/HĐ</TableHead>
+                <TableHead className="min-w-[140px] text-right">Tổng doanh thu</TableHead>
+                <TableHead className="min-w-[130px]">Trạng thái</TableHead>
+                <TableHead className="min-w-[130px]">Người lập</TableHead>
+                <TableHead className="w-[110px] min-w-[110px] text-right">Thao tác</TableHead>
               </TableRow>
-            ) : stockOuts.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={9} className="h-32 text-center text-slate-500">
-                  Không tìm thấy phiếu xuất kho nào.
-                </TableCell>
-              </TableRow>
-            ) : (
-              stockOuts.map((item) => (
-                <TableRow key={item.id} className="hover:bg-slate-50/50">
-                  <TableCell className="font-mono font-bold text-blue-600">
-                    {item.code}
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="h-32 text-center text-slate-500">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" />
+                    <span className="mt-2 block text-xs">Đang tải dữ liệu...</span>
                   </TableCell>
-                  <TableCell className="font-semibold text-slate-800">
-                    {item.customer?.name || "Khách lẻ"}
+                </TableRow>
+              ) : stockOuts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="h-32 text-center text-slate-500">
+                    Không tìm thấy phiếu xuất kho nào.
                   </TableCell>
-                  <TableCell>
-                    {(() => {
-                      const serials = (item.items || [])
-                        .map((i: any) => i.serialNumber)
-                        .filter(Boolean)
-                      if (serials.length === 0) return <span className="text-slate-400 text-xs">-</span>
-                      if (serials.length === 1) {
+                </TableRow>
+              ) : (
+                stockOuts.map((item) => (
+                  <TableRow key={item.id} className="hover:bg-slate-50/50">
+                    <TableCell className="font-mono font-bold text-blue-600">
+                      {item.code}
+                    </TableCell>
+                    <TableCell className="font-semibold text-slate-800">
+                      {item.customer?.name || "Khách lẻ"}
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const serials = (item.items || [])
+                          .map((i: any) => i.serialNumber)
+                          .filter(Boolean)
+                        if (serials.length === 0) return <span className="text-slate-400 text-xs">-</span>
+                        if (serials.length === 1) {
+                          return (
+                            <Badge variant="outline" className="font-mono text-xs text-slate-700 bg-slate-50 border-slate-200">
+                              {serials[0]}
+                            </Badge>
+                          )
+                        }
                         return (
-                          <Badge variant="outline" className="font-mono text-xs text-slate-700 bg-slate-50 border-slate-200">
-                            {serials[0]}
-                          </Badge>
+                          <div className="flex flex-wrap gap-1 max-w-[180px]">
+                            <Badge variant="outline" className="font-mono text-xs text-slate-700 bg-slate-50 border-slate-200">
+                              {serials[0]}
+                            </Badge>
+                            <Badge variant="secondary" className="text-[10px] text-blue-700 bg-blue-50 border-blue-200">
+                              +{serials.length - 1} khác
+                            </Badge>
+                          </div>
                         )
-                      }
-                      return (
-                        <div className="flex flex-wrap gap-1 max-w-[180px]">
-                          <Badge variant="outline" className="font-mono text-xs text-slate-700 bg-slate-50 border-slate-200">
-                            {serials[0]}
-                          </Badge>
-                          <Badge variant="secondary" className="text-[10px] text-blue-700 bg-blue-50 border-blue-200">
-                            +{serials.length - 1} khác
-                          </Badge>
+                      })()}
+                    </TableCell>
+                    <TableCell className="text-slate-600">
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                        <span>{formatDate(item.exportDate)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-slate-600 text-xs space-y-0.5">
+                      {item.poNumber && (
+                        <div>
+                          <span className="text-slate-400">PO:</span> {item.poNumber}
                         </div>
-                      )
-                    })()}
-                  </TableCell>
-                  <TableCell className="text-slate-600">
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                      <span>{formatDate(item.exportDate)}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-slate-600 text-xs space-y-0.5">
-                    {item.poNumber && (
-                      <div>
-                        <span className="text-slate-400">PO:</span> {item.poNumber}
-                      </div>
-                    )}
-                    {item.contractNumber && (
-                      <div>
-                        <span className="text-slate-400">HĐ:</span> {item.contractNumber}
-                      </div>
-                    )}
-                    {!item.poNumber && !item.contractNumber && "-"}
-                  </TableCell>
-                  <TableCell className="text-right font-bold text-slate-900">
-                    {formatCurrency(item.totalAmount)}
-                  </TableCell>
-                  <TableCell>{getStatusBadge(item.status)}</TableCell>
-                  <TableCell className="text-slate-700 text-sm">
-                    {item.createdBy?.fullName || item.createdBy?.username || "-"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      {item.status === "DRAFT" && (
+                      )}
+                      {item.contractNumber && (
+                        <div>
+                          <span className="text-slate-400">HĐ:</span> {item.contractNumber}
+                        </div>
+                      )}
+                      {!item.poNumber && !item.contractNumber && "-"}
+                    </TableCell>
+                    <TableCell className="text-right font-bold text-slate-900">
+                      {formatCurrency(item.totalAmount)}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(item.status)}</TableCell>
+                    <TableCell className="text-slate-700 text-sm">
+                      {item.createdBy?.fullName || item.createdBy?.username || "-"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {item.status === "DRAFT" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            onClick={() => handleApprove(item)}
+                            disabled={approvingId === item.id}
+                            title="Duyệt phiếu"
+                          >
+                            {approvingId === item.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-green-600 hover:text-green-700"
+                          className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={() => router.push(`/stock-out/${item.id}`)}
+                          title="Xem phiếu"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Mobile Card List View */}
+        <div className="divide-y divide-slate-100 md:hidden">
+          {isLoading ? (
+            <div className="p-8 text-center text-slate-500">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" />
+              <span className="mt-2 block text-xs">Đang tải dữ liệu...</span>
+            </div>
+          ) : stockOuts.length === 0 ? (
+            <div className="p-8 text-center text-slate-500 text-sm">
+              Không tìm thấy phiếu xuất kho nào.
+            </div>
+          ) : (
+            stockOuts.map((item) => {
+              const serials = (item.items || [])
+                .map((i: any) => i.serialNumber)
+                .filter(Boolean)
+              return (
+                <div key={item.id} className="p-4 space-y-2.5 bg-white hover:bg-slate-50/70 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono font-bold text-blue-600 text-sm">{item.code}</span>
+                    {getStatusBadge(item.status)}
+                  </div>
+                  
+                  <div className="space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Khách hàng:</span>
+                      <span className="font-semibold text-slate-800 text-right max-w-[200px] truncate">
+                        {item.customer?.name || "Khách lẻ"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Ngày xuất:</span>
+                      <span className="text-slate-700 font-medium">{formatDate(item.exportDate)}</span>
+                    </div>
+
+                    {item.poNumber && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400">Số PO:</span>
+                        <span className="font-mono font-medium text-slate-800 text-right">{item.poNumber}</span>
+                      </div>
+                    )}
+
+                    {item.contractNumber && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400">Số HĐ:</span>
+                        <span className="font-mono font-medium text-slate-800 text-right">{item.contractNumber}</span>
+                      </div>
+                    )}
+
+                    {serials.length > 0 && (
+                      <div className="pt-0.5">
+                        <span className="text-slate-400 block mb-1">Số Serial (S/N):</span>
+                        <div className="flex flex-wrap gap-1">
+                          {serials.slice(0, 3).map((s: string, idx: number) => (
+                            <Badge key={idx} variant="outline" className="font-mono text-[11px] text-slate-700 bg-slate-50 border-slate-200">
+                              {s}
+                            </Badge>
+                          ))}
+                          {serials.length > 3 && (
+                            <Badge variant="secondary" className="text-[10px] text-blue-700 bg-blue-50 border-blue-200">
+                              +{serials.length - 3} khác
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block leading-tight">Tổng doanh thu</span>
+                      <span className="font-bold text-sm text-slate-900">{formatCurrency(item.totalAmount)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {item.status === "DRAFT" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-2.5 gap-1 text-xs font-medium text-green-700 border-green-200 hover:bg-green-50 inline-flex items-center justify-center shrink-0"
                           onClick={() => handleApprove(item)}
                           disabled={approvingId === item.id}
-                          title="Duyệt phiếu"
                         >
                           {approvingId === item.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
                           ) : (
-                            <CheckCircle2 className="h-4 w-4" />
+                            <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
                           )}
+                          Duyệt
                         </Button>
                       )}
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-blue-600 hover:text-blue-700"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-2.5 gap-1 text-xs font-medium text-blue-600 border-blue-200 hover:bg-blue-50 inline-flex items-center justify-center shrink-0"
                         onClick={() => router.push(`/stock-out/${item.id}`)}
-                        title="Xem phiếu"
                       >
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-3.5 w-3.5" />
+                        Chi tiết
                       </Button>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
         <TablePagination
           page={page}
           limit={limit}

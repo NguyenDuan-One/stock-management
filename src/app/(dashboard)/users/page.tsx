@@ -191,14 +191,14 @@ export default function UsersPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-slate-50/50">
-              <TableHead>Họ và tên</TableHead>
-              <TableHead>Tên tài khoản</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Số điện thoại</TableHead>
-              <TableHead>Vai trò</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead>Ngày tạo</TableHead>
-              <TableHead className="w-[100px] text-right">Thao tác</TableHead>
+              <TableHead className="min-w-[200px]">Họ và tên</TableHead>
+              <TableHead className="min-w-[140px]">Tên tài khoản</TableHead>
+              <TableHead className="min-w-[200px]">Email</TableHead>
+              <TableHead className="min-w-[130px]">Số điện thoại</TableHead>
+              <TableHead className="min-w-[120px]">Vai trò</TableHead>
+              <TableHead className="min-w-[130px]">Trạng thái</TableHead>
+              <TableHead className="min-w-[120px]">Ngày tạo</TableHead>
+              <TableHead className="w-[80px] min-w-[80px] text-right">Thao tác</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -279,7 +279,7 @@ export default function UsersPage() {
                 required
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="usr-username">Username *</Label>
                 <Input
@@ -323,7 +323,7 @@ export default function UsersPage() {
                 required={!editingUser}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label>Vai trò *</Label>
                 <Select value={roleId} onValueChange={setRoleId}>

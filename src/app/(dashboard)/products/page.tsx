@@ -350,18 +350,18 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-slate-50/50">
-                <TableHead>Sản phẩm</TableHead>
-                <TableHead>Danh mục</TableHead>
-                <TableHead>Phương pháp tính</TableHead>
-                <TableHead className="text-right">Tồn kho</TableHead>
-                <TableHead className="text-right">Giá nhập (₫)</TableHead>
-                <TableHead className="text-right">Giá bán (₫)</TableHead>
-                <TableHead>Trạng thái</TableHead>
-                <TableHead className="w-[80px]"></TableHead>
+                <TableHead className="min-w-[260px]">Sản phẩm</TableHead>
+                <TableHead className="min-w-[180px]">Danh mục</TableHead>
+                <TableHead className="min-w-[180px]">Phương pháp tính</TableHead>
+                <TableHead className="min-w-[120px] text-right">Tồn kho</TableHead>
+                <TableHead className="min-w-[130px] text-right">Giá nhập (₫)</TableHead>
+                <TableHead className="min-w-[130px] text-right">Giá bán (₫)</TableHead>
+                <TableHead className="min-w-[120px]">Trạng thái</TableHead>
+                <TableHead className="w-[80px] min-w-[80px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -487,6 +487,112 @@ export default function ProductsPage() {
             </TableBody>
           </Table>
         </div>
+
+        {/* Mobile Card List View */}
+        <div className="divide-y divide-slate-100 md:hidden">
+          {isLoading ? (
+            <div className="p-8 text-center text-slate-500">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" />
+              <span className="mt-2 block text-xs">Đang tải dữ liệu...</span>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="p-8 text-center text-slate-500 text-sm">
+              Không tìm thấy sản phẩm nào.
+            </div>
+          ) : (
+            products.map((product) => (
+              <div key={product.id} className="p-4 space-y-2.5 bg-white hover:bg-slate-50/70 transition-colors">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="font-semibold text-slate-900 text-sm block leading-tight">{product.name}</span>
+                    <span className="text-[11px] text-slate-400">SKU: {product.sku} {product.barcode && `| Mã vạch: ${product.barcode}`}</span>
+                  </div>
+                  {product.isActive === false ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600 shrink-0">
+                      Không active
+                    </span>
+                  ) : product.quantity > product.minQuantity ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full border border-green-200 shrink-0">
+                      Còn hàng
+                    </span>
+                  ) : product.quantity > 0 ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 shrink-0">
+                      Sắp hết
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-700 bg-red-50 px-2 py-0.5 rounded-full border border-red-200 shrink-0">
+                      Hết hàng
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex flex-wrap gap-1">
+                    {(() => {
+                      const assignedCats = product.categoryAssignments?.map((a: any) => a.category).filter(Boolean) || []
+                      const allCats = product.category
+                        ? [product.category, ...assignedCats.filter((c: any) => c.id !== product.category?.id)]
+                        : assignedCats
+                      if (allCats.length === 0) return <span className="text-slate-400 text-xs">Chưa phân loại</span>
+                      return allCats.map((cat: any) => (
+                        <Badge key={cat.id} variant="secondary" className="font-normal bg-blue-50 text-blue-700 border border-blue-100 text-[10px] px-1.5 py-0.5">
+                          {cat.name}
+                        </Badge>
+                      ))
+                    })()}
+                  </div>
+
+                  <div className="flex items-center justify-between text-slate-600 bg-slate-50 px-2.5 py-1.5 rounded">
+                    <span>Tồn kho: <strong className={product.quantity <= product.minQuantity ? 'text-red-600' : 'text-slate-900'}>{product.quantity} {product.unit}</strong></span>
+                    <span>Giá bán: <strong className="text-slate-900">{product.sellingPrice ? formatCurrency(product.sellingPrice) : "-"}</strong></span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <span className="text-xs text-slate-500 font-medium">
+                    {getTrackingOption(product.trackingMethod).label}
+                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-2.5 text-xs text-blue-600 border-blue-200 hover:bg-blue-50 inline-flex items-center justify-center shrink-0"
+                      onClick={() => handleOpenEdit(product)}
+                    >
+                      <Edit className="h-3.5 w-3.5 mr-1" /> Sửa
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 text-slate-600 border-slate-200 hover:bg-slate-100 inline-flex items-center justify-center shrink-0"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuItem onClick={() => openPrintPreview(product, "serial")}>
+                          <ScanBarcode className="mr-2 h-4 w-4" />
+                          In tem serial
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openPrintPreview(product, "sku")}>
+                          <Printer className="mr-2 h-4 w-4" />
+                          In tem SKU
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-red-600 focus:text-red-700" onClick={() => setDeletingProduct(product)}>
+                          <Trash className="mr-2 h-4 w-4" />
+                          Xóa
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
         <TablePagination
           page={page}
           limit={limit}
@@ -512,7 +618,7 @@ export default function ProductsPage() {
                 required
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="prod-sku">Mã SKU *</Label>
                 <Input
@@ -641,7 +747,7 @@ export default function ProductsPage() {
               </div>
               <Switch id="prod-active" checked={isActive} onCheckedChange={setIsActive} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="space-y-2">
                 <Label htmlFor="prod-cost">Giá nhập(đ)</Label>
                 <Input
